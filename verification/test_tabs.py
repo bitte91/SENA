@@ -9,11 +9,12 @@ def test_tabs():
         page.goto(f"file://{file_path}")
 
         # Define tabs and their expected content selectors
+        # We target the .nav-tab class to specifically click the desktop buttons and avoid ambiguity with mobile buttons
         tabs = [
-            {"id": "gerador", "btn_selector": "button[data-tab='gerador']", "content_selector": "#tab-gerador"},
-            {"id": "simulador", "btn_selector": "button[data-tab='simulador']", "content_selector": "#tab-simulador"},
-            {"id": "carteira", "btn_selector": "button[data-tab='carteira']", "content_selector": "#tab-carteira"},
-            {"id": "analise", "btn_selector": "button[data-tab='analise']", "content_selector": "#tab-analise"},
+            {"id": "gerador", "btn_selector": "button.nav-tab[data-tab='gerador']", "content_selector": "#tab-gerador"},
+            {"id": "simulador", "btn_selector": "button.nav-tab[data-tab='simulador']", "content_selector": "#tab-simulador"},
+            {"id": "carteira", "btn_selector": "button.nav-tab[data-tab='carteira']", "content_selector": "#tab-carteira"},
+            {"id": "analise", "btn_selector": "button.nav-tab[data-tab='analise']", "content_selector": "#tab-analise"},
         ]
 
         for tab in tabs:

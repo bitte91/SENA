@@ -386,19 +386,19 @@
                         <i class="fas fa-wallet text-slate-300"></i> Carteira de Apostas
                     </h2>
                     <div class="flex gap-2">
-                        <button onclick="exportPDF()" class="text-xs bg-slate-700 hover:bg-red-500 text-white px-2 py-1.5 rounded transition" title="PDF">
+                        <button onclick="exportPDF()" aria-label="Exportar PDF" class="text-xs bg-slate-700 hover:bg-red-500 text-white px-2 py-1.5 rounded transition focus:ring-2 focus:ring-red-400 focus:outline-none" title="PDF">
                             <i class="fas fa-file-pdf"></i>
                         </button>
-                        <button onclick="exportCSV()" class="text-xs bg-slate-700 hover:bg-green-600 text-white px-2 py-1.5 rounded transition" title="CSV">
+                        <button onclick="exportCSV()" aria-label="Exportar CSV" class="text-xs bg-slate-700 hover:bg-green-600 text-white px-2 py-1.5 rounded transition focus:ring-2 focus:ring-green-400 focus:outline-none" title="CSV">
                             <i class="fas fa-file-excel"></i>
                         </button>
-                        <button onclick="shareViaURL()" class="text-xs bg-slate-700 hover:bg-blue-500 text-white px-2 py-1.5 rounded transition" title="Link">
+                        <button onclick="shareViaURL()" aria-label="Compartilhar Link" class="text-xs bg-slate-700 hover:bg-blue-500 text-white px-2 py-1.5 rounded transition focus:ring-2 focus:ring-blue-400 focus:outline-none" title="Link">
                             <i class="fas fa-link"></i>
                         </button>
-                        <button onclick="copyGames()" class="text-xs bg-slate-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded transition flex items-center gap-1">
+                        <button onclick="copyGames()" class="text-xs bg-slate-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded transition flex items-center gap-1 focus:ring-2 focus:ring-emerald-400 focus:outline-none">
                             <i class="fas fa-copy"></i> Copiar
                         </button>
-                        <button onclick="clearWallet()" class="text-xs bg-slate-700 hover:bg-red-600 text-white px-3 py-1.5 rounded transition flex items-center gap-1">
+                        <button onclick="clearWallet()" aria-label="Limpar carteira" class="text-xs bg-slate-700 hover:bg-red-600 text-white px-3 py-1.5 rounded transition flex items-center gap-1 focus:ring-2 focus:ring-red-400 focus:outline-none">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -631,14 +631,31 @@
             grid.innerHTML = '';
             for(let i=1; i<=60; i++) {
                 const el = document.createElement('div');
-                let classes = 'ball';
+                let classes = 'ball focus:ring-2 focus:ring-emerald-500 focus:outline-none';
                 if (STATS.hot.slice(0, 5).includes(i)) classes += ' hot-tier-1'; 
                 else if (STATS.hot.includes(i)) classes += ' hot-tier-2'; 
                 else if (STATS.cold.includes(i)) classes += ' cold-tier'; 
-                if (state.manualSelection.has(i)) classes += ' selected';
+
+                const isSelected = state.manualSelection.has(i);
+                if (isSelected) classes += ' selected';
+
                 el.className = classes;
                 el.innerText = i.toString().padStart(2, '0');
+
+                // Accessibility Enhancements
+                el.setAttribute('role', 'button');
+                el.setAttribute('tabindex', '0');
+                el.setAttribute('aria-label', `Número ${i}${isSelected ? ', selecionado' : ''}`);
+                el.setAttribute('aria-pressed', isSelected);
+
                 el.onclick = () => toggleNumber(i);
+                el.onkeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleNumber(i);
+                    }
+                };
+
                 grid.appendChild(el);
             }
         }
@@ -791,7 +808,7 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="text-xs text-slate-500 font-bold">${g.type.toUpperCase().substring(0,3)}</span>
-                        <button onclick="removeGame(${idx})" class="w-6 h-6 rounded flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-500/10 transition"><i class="fas fa-times"></i></button>
+                        <button onclick="removeGame(${idx})" aria-label="Remover jogo ${idx + 1}" class="w-6 h-6 rounded flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-500/10 transition focus:ring-2 focus:ring-red-500 focus:outline-none"><i class="fas fa-times"></i></button>
                     </div>
                 `;
                 container.appendChild(div);
