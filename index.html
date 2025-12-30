@@ -108,14 +108,47 @@
         .toast-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s ease-out; }
         .toast-exit { transform: translateY(0); opacity: 1; }
         .toast-exit-active { transform: translateY(100%); opacity: 0; transition: all 0.3s ease-in; }
+
+        /* Tabs Styles */
+        .tab-content { display: none; animation: fadeIn 0.3s ease-out; }
+        .tab-content:not(.hidden) { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Desktop Tabs */
+        .nav-tab {
+            @apply hidden md:flex items-center gap-2 px-4 py-3 rounded-t-lg border-b-2 border-transparent text-slate-400 font-bold text-sm transition-all hover:text-white hover:bg-slate-800/50;
+        }
+        .nav-tab.active {
+            @apply border-emerald-500 text-emerald-400 bg-slate-800/80;
+        }
+
+        /* Mobile Bottom Nav */
+        .mobile-nav-bar {
+            @apply md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 flex justify-around items-center p-2 z-[90] pb-safe;
+        }
+        .mobile-nav-item {
+            @apply flex flex-col items-center justify-center gap-1 p-2 text-slate-500 transition-colors w-full;
+        }
+        .mobile-nav-item.active {
+            @apply text-emerald-400;
+        }
+        .mobile-nav-item i {
+            @apply text-xl mb-0.5;
+        }
+        .mobile-nav-item span {
+            @apply text-[10px] font-bold tracking-wide;
+        }
+
+        /* Safe Area for iPhone Home Indicator */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
     </style>
 </head>
-<body class="min-h-screen flex flex-col pb-10">
+<body class="min-h-screen flex flex-col pb-24 md:pb-10">
 
     <!-- Toast Container -->
-    <div id="toast-container" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+    <div id="toast-container" class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- Navbar -->
+    <!-- Header Persistente -->
     <nav class="bg-slate-900/90 backdrop-blur-xl border-b border-slate-700 sticky top-0 z-50 shadow-2xl">
         <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
@@ -134,9 +167,6 @@
             </div>
             
             <div class="flex items-center gap-3">
-                <button onclick="toggleHistory()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 p-2 rounded-lg transition text-[10px] font-bold flex items-center gap-2">
-                    <i class="fas fa-history"></i> Histórico
-                </button>
                 <div class="flex gap-3 text-[10px] font-mono font-semibold bg-slate-800 p-2 rounded-lg border border-slate-700">
                     <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444]"></span> Super Quente</div>
                     <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Quente</div>
@@ -144,173 +174,213 @@
                 </div>
             </div>
         </div>
+
+        <!-- Desktop Tab Navigation -->
+        <div class="container mx-auto px-4 mt-2 hidden md:block">
+            <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                <button onclick="switchTab('gerador')" data-tab="gerador" class="nav-tab active">
+                    <i class="fas fa-crosshairs"></i> Gerador
+                </button>
+                <button onclick="switchTab('simulador')" data-tab="simulador" class="nav-tab">
+                    <i class="fas fa-dice"></i> Simulador
+                </button>
+                <button onclick="switchTab('carteira')" data-tab="carteira" class="nav-tab">
+                    <i class="fas fa-wallet"></i> Carteira
+                </button>
+                <button onclick="switchTab('analise')" data-tab="analise" class="nav-tab">
+                    <i class="fas fa-chart-bar"></i> Análise
+                </button>
+            </div>
+        </div>
     </nav>
 
-    <div class="container mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+    <!-- Mobile Bottom Navigation -->
+    <div class="mobile-nav-bar">
+        <button onclick="switchTab('gerador')" data-tab="gerador" class="mobile-nav-item active">
+            <i class="fas fa-crosshairs"></i>
+            <span>Gerador</span>
+        </button>
+        <button onclick="switchTab('simulador')" data-tab="simulador" class="mobile-nav-item">
+            <i class="fas fa-dice"></i>
+            <span>Simulador</span>
+        </button>
+        <button onclick="switchTab('carteira')" data-tab="carteira" class="mobile-nav-item">
+            <i class="fas fa-wallet"></i>
+            <span>Carteira</span>
+        </button>
+        <button onclick="switchTab('analise')" data-tab="analise" class="mobile-nav-item">
+            <i class="fas fa-chart-bar"></i>
+            <span>Análise</span>
+        </button>
+    </div>
 
-        <!-- Coluna Esquerda: Controle e Motor -->
-        <div class="lg:col-span-5 space-y-6">
-            
-            <!-- Matriz Estatística (Heatmap) -->
-            <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-1">
-                <div class="bg-slate-900/50 p-4 border-b border-slate-700 flex justify-between items-center rounded-t-xl">
-                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
-                        <i class="fas fa-border-all text-emerald-500"></i> Matriz Estatística Real
-                    </h2>
-                    <span id="selectionCounter" class="font-mono text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">0 / 15</span>
-                </div>
-                
-                <div class="p-5">
-                    <div class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-10 gap-2" id="manualGrid">
-                        <!-- JS injects balls here based on weights -->
+    <!-- Main Content -->
+    <div class="container mx-auto p-4 md:p-6 flex-1">
+
+        <!-- ABA 1: GERADOR -->
+        <div id="tab-gerador" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Matriz Estatística -->
+                <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-1">
+                    <div class="bg-slate-900/50 p-4 border-b border-slate-700 flex justify-between items-center rounded-t-xl">
+                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-border-all text-emerald-500"></i> Matriz Estatística Real
+                        </h2>
+                        <span id="selectionCounter" class="font-mono text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">0 / 15</span>
                     </div>
-                </div>
 
-                <!-- Footer Informativo -->
-                <div class="bg-slate-900/80 p-4 border-t border-slate-700 rounded-b-xl grid grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-[10px] uppercase text-slate-300 font-bold mb-1 tracking-wider">Investimento</p>
-                        <p class="text-xl font-bold text-white font-mono" id="costDisplay">R$ 0,00</p>
+                    <div class="p-5">
+                        <div class="grid grid-cols-6 lg:grid-cols-10 gap-2" id="manualGrid">
+                            <!-- JS injects balls here -->
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-[10px] uppercase text-slate-300 font-bold mb-1 tracking-wider">Probabilidade (Sena)</p>
-                        <p class="text-xs font-mono text-emerald-400 font-bold" id="probDisplay">-</p>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Gerador IA Preditivo -->
-            <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-6 relative overflow-hidden group">
-                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-                <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
-                
-                <h3 class="text-sm font-bold text-white mb-5 flex items-center gap-2 relative z-10">
-                    <i class="fas fa-brain text-blue-400"></i> Gerador Preditivo (Algoritmo Ponderado)
-                </h3>
-
-                <div class="space-y-5 relative z-10">
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-900/80 p-4 border-t border-slate-700 rounded-b-xl grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-[10px] uppercase text-slate-300 font-bold block mb-2 tracking-wider">Números p/ Jogo</label>
-                            <select id="genSize" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition">
-                                <option value="6">6 (Padrão)</option>
-                                <option value="7">7 (Estratégico)</option>
-                                <option value="8">8 (Agressivo)</option>
-                                <option value="9">9 (Investidor)</option>
-                                <option value="10">10 (Fechamento)</option>
-                            </select>
+                            <p class="text-[10px] uppercase text-slate-300 font-bold mb-1 tracking-wider">Investimento</p>
+                            <p class="text-xl font-bold text-white font-mono" id="costDisplay">R$ 0,00</p>
                         </div>
-                        <div>
-                            <label class="text-[10px] uppercase text-slate-300 font-bold block mb-2 tracking-wider">Qtd. Jogos</label>
-                            <input type="number" id="genQty" value="5" min="1" max="50" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition text-center">
+                        <div class="text-right">
+                            <p class="text-[10px] uppercase text-slate-300 font-bold mb-1 tracking-wider">Probabilidade (Sena)</p>
+                            <p class="text-xs font-mono text-emerald-400 font-bold" id="probDisplay">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel de Controle -->
+                <div class="space-y-6">
+                    <!-- Gerador IA -->
+                    <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-6 relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+
+                        <h3 class="text-sm font-bold text-white mb-5 flex items-center gap-2 relative z-10">
+                            <i class="fas fa-brain text-blue-400"></i> Gerador Preditivo
+                        </h3>
+
+                        <div class="space-y-5 relative z-10">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-[10px] uppercase text-slate-300 font-bold block mb-2 tracking-wider">Números p/ Jogo</label>
+                                    <select id="genSize" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition">
+                                        <option value="6">6 (Padrão)</option>
+                                        <option value="7">7 (Estratégico)</option>
+                                        <option value="8">8 (Agressivo)</option>
+                                        <option value="9">9 (Investidor)</option>
+                                        <option value="10">10 (Fechamento)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] uppercase text-slate-300 font-bold block mb-2 tracking-wider">Qtd. Jogos</label>
+                                    <input type="number" id="genQty" value="5" min="1" max="50" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition text-center">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="text-[10px] uppercase text-slate-300 font-bold block mb-2 tracking-wider">Modo do Motor</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button onclick="setStrategy('balanced')" class="strat-btn active group relative bg-slate-800 hover:bg-slate-700 border border-emerald-500/50 rounded-lg p-3 text-[10px] text-center transition" data-mode="balanced">
+                                        <div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition"></div>
+                                        <i class="fas fa-scale-balanced block mb-1 text-emerald-400 text-lg"></i>
+                                        <span class="font-bold text-slate-300">Equilíbrio</span>
+                                    </button>
+                                    <button onclick="setStrategy('hot')" class="strat-btn group relative bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-3 text-[10px] text-center transition" data-mode="hot">
+                                        <div class="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition"></div>
+                                        <i class="fas fa-fire block mb-1 text-red-400 text-lg"></i>
+                                        <span class="font-bold text-slate-300">Quentes</span>
+                                    </button>
+                                    <button onclick="setStrategy('smart')" class="strat-btn group relative bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-3 text-[10px] text-center transition" data-mode="smart">
+                                        <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition"></div>
+                                        <i class="fas fa-microchip block mb-1 text-blue-400 text-lg"></i>
+                                        <span class="font-bold text-slate-300">IA Smart</span>
+                                    </button>
+                                </div>
+                                <p id="strategyDesc" class="text-[10px] text-slate-400 mt-2 text-center italic">Usa média histórica e desvio padrão para equilibrar o jogo.</p>
+                            </div>
+
+                            <button onclick="generateGames()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition active:scale-[0.98] flex items-center justify-center gap-2 group">
+                                <i class="fas fa-bolt group-hover:animate-pulse"></i> Gerar Jogos Otimizados
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Seletor de Estratégia -->
-                    <div>
-                        <label class="text-[10px] uppercase text-slate-300 font-bold block mb-2 tracking-wider">Modo do Motor</label>
-                        <div class="grid grid-cols-3 gap-2">
-                            <button onclick="setStrategy('balanced')" class="strat-btn active group relative bg-slate-800 hover:bg-slate-700 border border-emerald-500/50 rounded-lg p-3 text-[10px] text-center transition" data-mode="balanced">
-                                <div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition"></div>
-                                <i class="fas fa-scale-balanced block mb-1 text-emerald-400 text-lg"></i>
-                                <span class="font-bold text-slate-300">Equilíbrio</span>
-                            </button>
-                            <button onclick="setStrategy('hot')" class="strat-btn group relative bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-3 text-[10px] text-center transition" data-mode="hot">
-                                <div class="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition"></div>
-                                <i class="fas fa-fire block mb-1 text-red-400 text-lg"></i>
-                                <span class="font-bold text-slate-300">Quentes</span>
-                            </button>
-                            <button onclick="setStrategy('smart')" class="strat-btn group relative bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-3 text-[10px] text-center transition" data-mode="smart">
-                                <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition"></div>
-                                <i class="fas fa-microchip block mb-1 text-blue-400 text-lg"></i>
-                                <span class="font-bold text-slate-300">IA Smart</span>
-                            </button>
-                        </div>
-                        <p id="strategyDesc" class="text-[10px] text-slate-400 mt-2 text-center italic">Usa média histórica e desvio padrão para equilibrar o jogo.</p>
+                    <!-- Ações Rápidas -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="addManualSelection()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl border border-slate-600 transition flex items-center justify-center gap-2 shadow-sm">
+                            <i class="fas fa-plus-circle text-emerald-500"></i> Adic. Manual
+                        </button>
+                        <button onclick="clearSelection()" class="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white font-bold py-3 rounded-xl border border-slate-700 transition">
+                            Limpar Seleção
+                        </button>
                     </div>
-
-                    <button onclick="generateGames()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition active:scale-[0.98] flex items-center justify-center gap-2 group">
-                        <i class="fas fa-bolt group-hover:animate-pulse"></i> Gerar Jogos Otimizados
-                    </button>
                 </div>
             </div>
-            
-            <!-- Ações Rápidas -->
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="addManualSelection()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl border border-slate-600 transition flex items-center justify-center gap-2 shadow-sm">
-                    <i class="fas fa-plus-circle text-emerald-500"></i> Adic. Manual
-                </button>
-                <button onclick="clearSelection()" class="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white font-bold py-3 rounded-xl border border-slate-700 transition">
-                    Limpar Seleção
-                </button>
-            </div>
-
         </div>
 
-        <!-- Coluna Direita: Carteira e Simulador -->
-        <div class="lg:col-span-7 space-y-6">
+        <!-- ABA 2: SIMULADOR -->
+        <div id="tab-simulador" class="tab-content hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-slate-800/50 backdrop-blur-md rounded-3xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-80 h-80 bg-emerald-600 rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
+                    <div class="absolute bottom-0 left-0 w-64 h-64 bg-blue-600 rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
 
-            <!-- Simulador Monte Carlo V5.1 -->
-            <div class="bg-slate-800/50 backdrop-blur-md rounded-3xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-6 relative overflow-hidden">
-                <!-- Decorative background -->
-                <div class="absolute top-0 right-0 w-80 h-80 bg-emerald-600 rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
-                <div class="absolute bottom-0 left-0 w-64 h-64 bg-blue-600 rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
-
-                <div class="relative z-10">
-                    <div class="flex flex-col sm:flex-row justify-between items-end mb-6 gap-4">
-                        <div>
-                            <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                                <i class="fas fa-chart-line text-emerald-500"></i> Monte Carlo <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Real Engine</span>
-                            </h2>
-                            <p class="text-xs text-slate-300 mt-1 max-w-md">Simulação baseada na frequência ponderada histórica (1996-2025). Testa 50.000 concursos futuros prováveis.</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="showPreSimulationAnalysis()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg transition flex items-center gap-2 text-xs">
-                                <i class="fas fa-search-plus"></i> Analisar
-                            </button>
-                            <button onclick="runSimulation()" id="btnSimulate" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group">
-                                <span>Executar Simulação</span>
-                                <i class="fas fa-play text-xs group-hover:translate-x-1 transition"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Resultados da Simulação -->
-                    <div id="simResults" class="hidden space-y-5">
-                        <!-- Barra de Progresso -->
-                        <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
-                            <div id="simProgress" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full w-0 transition-all duration-100 ease-linear progress-bar-stripes"></div>
-                        </div>
-
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm">
-                                <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Quadras (4)</span>
-                                <p class="text-3xl font-bold text-yellow-400 mt-1" id="resQuadra">0</p>
+                    <div class="relative z-10">
+                        <div class="flex flex-col sm:flex-row justify-between items-end mb-6 gap-4">
+                            <div>
+                                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                                    <i class="fas fa-chart-line text-emerald-500"></i> Monte Carlo <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Real Engine</span>
+                                </h2>
+                                <p class="text-xs text-slate-300 mt-1 max-w-md">Simulação baseada na frequência ponderada histórica (1996-2025). Testa 50.000 concursos futuros prováveis.</p>
                             </div>
-                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm">
-                                <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Quinas (5)</span>
-                                <p class="text-3xl font-bold text-blue-400 mt-1" id="resQuina">0</p>
-                            </div>
-                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm">
-                                <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Senas (6)</span>
-                                <p class="text-3xl font-bold text-emerald-400 mt-1" id="resSena">0</p>
-                            </div>
-                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm relative overflow-hidden group">
-                                <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition"></div>
-                                <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Retorno (ROI)</span>
-                                <p class="text-3xl font-bold text-white mt-1" id="resRoi">0%</p>
+                            <div class="flex gap-2">
+                                <button onclick="showPreSimulationAnalysis()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg transition flex items-center gap-2 text-xs">
+                                    <i class="fas fa-search-plus"></i> Analisar
+                                </button>
+                                <button onclick="runSimulation()" id="btnSimulate" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group">
+                                    <span>Executar Simulação</span>
+                                    <i class="fas fa-play text-xs group-hover:translate-x-1 transition"></i>
+                                </button>
                             </div>
                         </div>
-                        
-                        <div class="text-[10px] text-center text-slate-500 font-mono">
-                            Baseado em projeção de R$ 6,00 por aposta simples.
+
+                        <!-- Resultados da Simulação -->
+                        <div id="simResults" class="hidden space-y-5">
+                            <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
+                                <div id="simProgress" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full w-0 transition-all duration-100 ease-linear progress-bar-stripes"></div>
+                            </div>
+
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm">
+                                    <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Quadras (4)</span>
+                                    <p class="text-3xl font-bold text-yellow-400 mt-1" id="resQuadra">0</p>
+                                </div>
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm">
+                                    <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Quinas (5)</span>
+                                    <p class="text-3xl font-bold text-blue-400 mt-1" id="resQuina">0</p>
+                                </div>
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm">
+                                    <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Senas (6)</span>
+                                    <p class="text-3xl font-bold text-emerald-400 mt-1" id="resSena">0</p>
+                                </div>
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm relative overflow-hidden group">
+                                    <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition"></div>
+                                    <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Retorno (ROI)</span>
+                                    <p class="text-3xl font-bold text-white mt-1" id="resRoi">0%</p>
+                                </div>
+                            </div>
+
+                            <div class="text-[10px] text-center text-slate-500 font-mono">
+                                Baseado em projeção de R$ 6,00 por aposta simples.
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Carteira de Jogos -->
-            <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 flex flex-col h-[420px] relative overflow-hidden">
+        <!-- ABA 3: CARTEIRA -->
+        <div id="tab-carteira" class="tab-content hidden">
+            <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 flex flex-col min-h-[500px] relative overflow-hidden">
                 <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/80 backdrop-blur z-10">
                     <h2 class="text-sm font-bold text-white flex items-center gap-2">
                         <i class="fas fa-wallet text-slate-300"></i> Carteira de Apostas
@@ -347,38 +417,82 @@
                     <span class="text-lg font-bold text-emerald-400 font-mono" id="walletTotal">R$ 0,00</span>
                 </div>
             </div>
-
         </div>
+
+        <!-- ABA 4: ANÁLISE & HISTÓRICO -->
+        <div id="tab-analise" class="tab-content hidden">
+            <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-history text-emerald-500"></i> Histórico de Gerações
+                    </h2>
+                    <button onclick="localStorage.removeItem('megastrat-history'); loadHistoryTab(); showToast('Histórico limpo!', 'success')" class="text-xs text-red-400 hover:text-red-300 font-bold px-3 py-1 bg-slate-900 border border-slate-700 rounded-lg">
+                        Limpar Tudo
+                    </button>
+                </div>
+
+                <div id="historyContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <p class="text-center text-slate-500 text-sm py-10 col-span-full">Nenhum histórico encontrado.</p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- History Modal -->
-    <div id="historyModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-        <div class="bg-slate-900 rounded-2xl border border-slate-700 w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl relative overflow-hidden">
-            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900 z-10">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-history text-emerald-500"></i> Histórico de Gerações</h3>
-                <button onclick="toggleHistory()" class="text-slate-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            <div id="historyContainer" class="p-4 overflow-y-auto space-y-3 custom-scrollbar flex-1 bg-slate-900/50">
-                <p class="text-center text-slate-500 text-sm py-10">Nenhum histórico encontrado.</p>
-            </div>
-            <div class="p-3 border-t border-slate-800 bg-slate-900 flex justify-end">
-                <button onclick="localStorage.removeItem('megastrat-history'); loadHistoryTab(); showToast('Histórico limpo!', 'success')" class="text-xs text-red-400 hover:text-red-300 font-bold px-3 py-1">Limpar Tudo</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Hidden Input for File Import (Future Proofing) -->
+    <!-- Hidden Input for File Import -->
     <div class="fixed bottom-4 right-4 z-40">
         <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white px-3 py-2 rounded-full border border-slate-700 shadow-lg text-xs font-bold transition flex items-center gap-2">
-            <i class="fas fa-upload"></i> Atualizar Base (JSON/TXT)
+            <i class="fas fa-upload"></i> Atualizar Base
             <input type="file" id="fileInput" class="hidden" accept=".json,.txt,.csv" onchange="handleFileUpload(this)">
         </label>
     </div>
 
     <script>
-        /** * MEGASTRAT ULTRA ENGINE V5.1
-         * Baseado nos dados históricos oficiais até Concurso 2954.
-         */
+        /** * MEGASTRAT ULTRA ENGINE V5.1 */
+
+        // --- TABS SYSTEM ---
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+            });
+
+            // Remove active class from desktop nav
+            document.querySelectorAll('.nav-tab').forEach(el => {
+                el.classList.remove('active', 'border-emerald-500', 'text-emerald-400', 'bg-slate-800/80');
+                el.classList.add('border-transparent');
+            });
+
+            // Remove active class from mobile nav
+            document.querySelectorAll('.mobile-nav-item').forEach(el => {
+                el.classList.remove('active', 'text-emerald-400');
+            });
+
+            // Show target tab
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) {
+                target.classList.remove('hidden');
+
+                // Activate desktop nav button
+                const btn = document.querySelector(`.nav-tab[data-tab="${tabId}"]`);
+                if(btn) {
+                    btn.classList.add('active', 'border-emerald-500', 'text-emerald-400', 'bg-slate-800/80');
+                    btn.classList.remove('border-transparent');
+                }
+
+                // Activate mobile nav button
+                const mobileBtn = document.querySelector(`.mobile-nav-item[data-tab="${tabId}"]`);
+                if(mobileBtn) {
+                    mobileBtn.classList.add('active');
+                }
+
+                // Load content if needed
+                if(tabId === 'analise') loadHistoryTab();
+
+                // Update URL
+                window.location.hash = `/${tabId}`;
+            }
+        }
 
         // --- SISTEMA DE TOAST (Substitui Alert) ---
         function showToast(message, type = 'info') {
@@ -401,7 +515,6 @@
 
             container.appendChild(toast);
             
-            // Trigger animation
             requestAnimationFrame(() => {
                 toast.classList.remove('toast-enter');
                 toast.classList.add('toast-enter-active');
@@ -416,28 +529,19 @@
             }, 3000);
         }
 
-        // --- DADOS ESTATÍSTICOS OFICIAIS (Hardcoded para performance e fallback) ---
-        // Extraído dos documentos: 10 é o rei (340+ vezes), 53 vice. 26 é o mais raro.
+        // --- DADOS ESTATÍSTICOS OFICIAIS ---
         let STATS = {
-            // Top 15 Frequentes (Hot)
             hot: [10, 53, 5, 37, 34, 38, 4, 33, 27, 30, 32, 44, 54, 11, 17],
-            // Top 10 Menos Frequentes (Cold)
             cold: [26, 55, 21, 22, 56, 14, 35, 13, 9, 48],
-            // Pesos para o motor probabilístico (1.0 = normal)
             weights: {} 
         };
 
-        // Inicializar Pesos Probabilísticos (Simula a curva de Gauss da loteria)
         function initWeights() {
             for(let i=1; i<=60; i++) {
                 let w = 1.0; 
-                // Boost para números quentes (baseado na persistência estatística)
-                if (STATS.hot.slice(0, 5).includes(i)) w = 1.6; // Top 5
-                else if (STATS.hot.includes(i)) w = 1.3; // Resto do Top 15
-                
-                // Penalidade suave para frios (eles saem, mas menos)
+                if (STATS.hot.slice(0, 5).includes(i)) w = 1.6;
+                else if (STATS.hot.includes(i)) w = 1.3;
                 if (STATS.cold.includes(i)) w = 0.7;
-                
                 STATS.weights[i] = w;
             }
         }
@@ -456,30 +560,41 @@
             renderGrid();
             updateDashboard();
 
-            // Check for shared games via URL
+            // Hash Navigation
+            const hash = window.location.hash.replace('#/', '');
+            if(['gerador', 'simulador', 'carteira', 'analise'].includes(hash)) {
+                switchTab(hash);
+            } else {
+                switchTab('gerador');
+            }
+
+            window.addEventListener('hashchange', () => {
+                const h = window.location.hash.replace('#/', '');
+                switchTab(h);
+            });
+
+            // Check for shared games
             const params = new URLSearchParams(window.location.search);
             if (params.has('load')) {
                 try {
                     const games = atob(params.get('load')).split('|').map(g => g.split('-').map(Number));
                     games.forEach(g => addGameToWallet(g, 'shared'));
                     showToast(`${games.length} jogos compartilhados carregados!`, 'success');
+                    switchTab('carteira');
                 } catch(e) {
                     console.error("Error loading shared games", e);
                 }
             }
         };
 
-        // --- SISTEMA DE ARQUIVOS (ATUALIZAÇÃO DE BASE) ---
+        // --- SISTEMA DE ARQUIVOS ---
         function handleFileUpload(input) {
             const file = input.files[0];
             if (!file) return;
-            
             const reader = new FileReader();
             reader.onload = (e) => {
                 const text = e.target.result;
-                // Tentativa simples de parsear números de um CSV ou JSON bruto
                 try {
-                    // Procura padrões de números em massa
                     const matches = text.match(/\b([0-5]?[0-9]|60)\b/g);
                     if (matches && matches.length > 100) {
                         recalcStatsFromData(matches);
@@ -488,7 +603,6 @@
                         showToast("Formato não reconhecido ou dados insuficientes.", "error");
                     }
                 } catch (err) {
-                    console.error(err);
                     showToast("Erro ao ler arquivo.", "error");
                 }
             };
@@ -501,38 +615,27 @@
                 const val = parseInt(n);
                 if (val >= 1 && val <= 60) counts[val]++;
             });
-            
-            // Criar lista ordenada
             let ranked = [];
             for(let i=1; i<=60; i++) ranked.push({ n: i, c: counts[i] });
             ranked.sort((a,b) => b.c - a.c);
-            
-            // Atualizar Globais
             STATS.hot = ranked.slice(0, 15).map(x => x.n);
             STATS.cold = ranked.slice(50, 60).map(x => x.n);
-            initWeights(); // Recalcular pesos
-            renderGrid(); // Atualizar visual
-            
+            initWeights();
+            renderGrid();
             document.getElementById('dataStatusBadge').innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Dados: Customizado';
         }
 
         // --- INTERFACE E GRADE ---
-
         function renderGrid() {
             const grid = document.getElementById('manualGrid');
             grid.innerHTML = '';
-            
             for(let i=1; i<=60; i++) {
                 const el = document.createElement('div');
                 let classes = 'ball';
-                
-                // Visualização de Temperatura (Heatmap)
                 if (STATS.hot.slice(0, 5).includes(i)) classes += ' hot-tier-1'; 
                 else if (STATS.hot.includes(i)) classes += ' hot-tier-2'; 
                 else if (STATS.cold.includes(i)) classes += ' cold-tier'; 
-
                 if (state.manualSelection.has(i)) classes += ' selected';
-
                 el.className = classes;
                 el.innerText = i.toString().padStart(2, '0');
                 el.onclick = () => toggleNumber(i);
@@ -544,9 +647,7 @@
             if (state.manualSelection.has(n)) {
                 state.manualSelection.delete(n);
             } else {
-                if (state.manualSelection.size >= 15) {
-                    return showToast("Máximo de 15 números por jogo.", "error");
-                }
+                if (state.manualSelection.size >= 15) return showToast("Máximo de 15 números por jogo.", "error");
                 state.manualSelection.add(n);
             }
             renderGrid();
@@ -556,14 +657,11 @@
         function updateDashboard() {
             const count = state.manualSelection.size;
             document.getElementById('selectionCounter').innerText = `${count} / 15`;
-            
             const cost = count >= 6 ? (COSTS[count] || 0) : 0;
             document.getElementById('costDisplay').innerText = cost.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
-
             const probEl = document.getElementById('probDisplay');
-            if (count < 6) {
-                probEl.innerText = "-";
-            } else {
+            if (count < 6) probEl.innerText = "-";
+            else {
                 const total = combination(60, 6);
                 const player = combination(count, 6);
                 const chance = total / player;
@@ -585,22 +683,18 @@
             updateDashboard();
         }
 
-        // --- MOTOR DE GERAÇÃO (IA PREDITIVA) ---
-
+        // --- MOTOR DE GERAÇÃO ---
         function setStrategy(mode) {
             state.strategy = mode;
             const desc = document.getElementById('strategyDesc');
-            
             document.querySelectorAll('.strat-btn').forEach(btn => {
                 btn.classList.remove('active', 'border-emerald-500/50', 'bg-slate-900');
                 btn.classList.add('border-slate-700', 'bg-slate-800');
-                
                 if (btn.dataset.mode === mode) {
                     btn.classList.add('active', 'border-emerald-500/50');
                     btn.classList.remove('border-slate-700');
                 }
             });
-
             if (mode === 'balanced') desc.innerText = "Busca o equilíbrio perfeito da Curva de Gauss (Soma 180-210).";
             if (mode === 'hot') desc.innerText = "Foca agressivamente nos números de maior frequência histórica.";
             if (mode === 'smart') desc.innerText = "Mistura 'Lotto Designs' com números quentes e frios para cobertura.";
@@ -610,54 +704,34 @@
             const qty = parseInt(document.getElementById('genQty').value);
             const size = parseInt(document.getElementById('genSize').value);
             const mode = state.strategy;
-
             for(let i=0; i<qty; i++) {
                 let game = [];
                 let attempts = 0;
-                
-                // Loop de Tentativa de Geração (Para satisfazer filtros)
                 while (attempts < 500) {
                     const pool = new Set();
-                    
-                    // Lógica de Seleção por Estratégia
-                    if (mode === 'hot') {
-                        // Garante pelo menos 4 do Top 15
-                        fillFromPool(pool, STATS.hot, 4);
-                    } 
+                    if (mode === 'hot') fillFromPool(pool, STATS.hot, 4);
                     else if (mode === 'smart') {
-                        // Estrutura Clássica: 3 Quentes, 1 Frio, Resto Neutro
                         fillFromPool(pool, STATS.hot, 3);
                         fillFromPool(pool, STATS.cold, 1);
                     }
-                    
-                    // Preenche o resto usando Probabilidade Ponderada (Roleta Viciada)
-                    while (pool.size < size) {
-                        pool.add(getWeightedRandomNumber());
-                    }
-
+                    while (pool.size < size) pool.add(getWeightedRandomNumber());
                     const candidate = Array.from(pool).sort((a,b)=>a-b);
-
-                    // VALIDATION ENGINE (O Coração do App)
                     if (validateGame(candidate)) {
                         game = candidate;
                         break;
                     }
                     attempts++;
                 }
-                
-                // Fallback se não conseguir gerar perfeito em 500 tentativas
                 if (game.length === 0) {
                     const pool = new Set();
                     while(pool.size < size) pool.add(Math.floor(Math.random()*60)+1);
                     game = Array.from(pool).sort((a,b)=>a-b);
                 }
-
                 addGameToWallet(game, mode);
             }
             showToast(`${qty} Jogos gerados com sucesso!`, "success");
         }
 
-        // Função de Roleta Ponderada (Baseada na Frequência Real)
         function getWeightedRandomNumber() {
             const list = [];
             for (let i=1; i<=60; i++) {
@@ -677,29 +751,19 @@
         }
 
         function validateGame(numbers) {
-            // 1. Filtro de Soma (Teorema do Limite Central)
             const sum = numbers.reduce((a,b)=>a+b, 0);
             const min = 140 + (numbers.length - 6) * 25; 
             const max = 230 + (numbers.length - 6) * 35;
-            
             if (sum < min || sum > max) return false;
-
-            // 2. Filtro de Consecutivos
             let cons = 0;
-            for(let i=0; i<numbers.length-1; i++) {
-                if(numbers[i+1] === numbers[i]+1) cons++;
-            }
+            for(let i=0; i<numbers.length-1; i++) if(numbers[i+1] === numbers[i]+1) cons++;
             if (cons > 2) return false; 
-
-            // 3. Filtro de Paridade (Evitar tudo Par ou tudo Ímpar)
             const evens = numbers.filter(n => n%2===0).length;
             if (evens === 0 || evens === numbers.length) return false;
-
             return true;
         }
 
         // --- CARTEIRA DE JOGOS ---
-
         function addGameToWallet(numbers, type) {
             const cost = COSTS[numbers.length] || 0;
             state.games.push({ numbers, cost, type });
@@ -709,21 +773,17 @@
         function renderWallet() {
             const container = document.getElementById('gamesContainer');
             container.innerHTML = '';
-            
             let total = 0;
-
             state.games.forEach((g, idx) => {
                 total += g.cost;
                 const div = document.createElement('div');
                 div.className = "game-card p-3 rounded-xl flex justify-between items-center text-sm mb-2 bg-slate-800 border border-slate-700";
-                
                 const ballsHtml = g.numbers.map(n => {
-                    let color = 'text-slate-400'; // Neutro
-                    if (STATS.hot.includes(n)) color = 'text-blue-400 font-bold'; // Quente
-                    if (STATS.cold.includes(n)) color = 'text-indigo-600'; // Frio
+                    let color = 'text-slate-400';
+                    if (STATS.hot.includes(n)) color = 'text-blue-400 font-bold';
+                    if (STATS.cold.includes(n)) color = 'text-indigo-600';
                     return `<span class="${color}">${n.toString().padStart(2,'0')}</span>`;
                 }).join('<span class="text-slate-700 mx-1">·</span>');
-
                 div.innerHTML = `
                     <div class="flex items-center gap-3">
                         <span class="text-xs text-slate-500 font-mono w-6">#${idx+1}</span>
@@ -736,11 +796,7 @@
                 `;
                 container.appendChild(div);
             });
-
-            if (state.games.length === 0) {
-                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-600 opacity-40"><i class="fas fa-ticket-alt text-4xl mb-3"></i><p class="text-sm">Carteira Vazia</p></div>`;
-            }
-
+            if (state.games.length === 0) container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-600 opacity-40"><i class="fas fa-ticket-alt text-4xl mb-3"></i><p class="text-sm">Carteira Vazia</p></div>`;
             document.getElementById('walletTotal').innerText = total.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
         }
 
@@ -757,16 +813,9 @@
 
         function copyGames() {
             if(state.games.length === 0) return;
-            
             const txt = state.games.map(g => g.numbers.join(', ')).join('\n');
-            
-            // Método robusto para copiar (tenta API moderna, fallback para comando antigo)
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(txt).then(() => {
-                    showToast("Jogos copiados para a área de transferência!", "success");
-                }).catch(() => {
-                    fallbackCopy(txt);
-                });
+                navigator.clipboard.writeText(txt).then(() => showToast("Jogos copiados!", "success"));
             } else {
                 fallbackCopy(txt);
             }
@@ -779,74 +828,55 @@
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
-            
             try {
                 const successful = document.execCommand('copy');
-                if(successful) showToast("Jogos copiados (fallback)!", "success");
-                else showToast("Erro ao copiar.", "error");
-            } catch (err) {
-                showToast("Erro ao copiar.", "error");
-            }
+                if(successful) showToast("Jogos copiados!", "success");
+            } catch (err) {}
             document.body.removeChild(textArea);
         }
 
-        // --- HISTORY SYSTEM ---
-        function toggleHistory() {
-            const modal = document.getElementById('historyModal');
-            if (modal.classList.contains('hidden')) {
-                modal.classList.remove('hidden');
-                loadHistoryTab();
-            } else {
-                modal.classList.add('hidden');
-            }
-        }
-
+        // --- HISTORY SYSTEM (Agora Integrado na Tab) ---
         function saveGenerationHistory(games, mode, roi) {
             if(games.length === 0) return;
-
-            // Calculate wallet total
             const totalCost = games.reduce((a,b) => a + b.cost, 0);
-
             const history = JSON.parse(localStorage.getItem('megastrat-history')) || [];
             history.push({
                 id: Date.now(),
-                games: games, // Save full game objects
+                games: games,
                 mode: mode,
                 timestamp: new Date().toISOString(),
                 roi: roi,
                 carteira_total: totalCost
             });
-
-            // Keep last 50
             if(history.length > 50) history.shift();
-
             localStorage.setItem('megastrat-history', JSON.stringify(history));
+
+            // Se estiver na tab de análise, atualizar
+            if(!document.getElementById('tab-analise').classList.contains('hidden')) {
+                loadHistoryTab();
+            }
         }
 
         function loadHistoryTab() {
             const history = JSON.parse(localStorage.getItem('megastrat-history')) || [];
             const container = document.getElementById('historyContainer');
-
             if (history.length === 0) {
-                container.innerHTML = '<p class="text-center text-slate-500 text-sm py-10">Nenhum histórico encontrado.</p>';
+                container.innerHTML = '<p class="text-center text-slate-500 text-sm py-10 col-span-full">Nenhum histórico encontrado.</p>';
                 return;
             }
-
             container.innerHTML = history.reverse().map((h) => {
                 let roiColor = 'text-slate-400';
                 if(h.roi > 0) roiColor = 'text-emerald-400';
                 else if(h.roi < -50) roiColor = 'text-red-400';
                 else if(h.roi !== 0) roiColor = 'text-yellow-400';
-
                 const date = new Date(h.timestamp).toLocaleString('pt-BR');
                 const gameCount = h.games.length;
-
                 return `
-                <div class='bg-slate-800 p-4 rounded-xl border border-slate-700 hover:border-slate-600 transition group'>
+                <div class='bg-slate-700/40 p-4 rounded-xl border border-slate-600 hover:border-emerald-500/50 transition group'>
                     <div class='flex justify-between items-start mb-3'>
                         <div>
                             <div class="flex items-center gap-2 mb-1">
-                                <span class='text-[10px] bg-slate-700 text-white px-2 py-0.5 rounded font-mono'>${date}</span>
+                                <span class='text-[10px] bg-slate-800 text-white px-2 py-0.5 rounded font-mono'>${date}</span>
                                 <span class='text-[10px] bg-emerald-900/50 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 uppercase font-bold'>${h.mode}</span>
                             </div>
                             <p class="text-sm text-slate-300 font-medium">${gameCount} Jogos <span class="text-slate-500 mx-1">|</span> Total: ${h.carteira_total.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</p>
@@ -856,8 +886,7 @@
                             <p class="text-lg font-bold ${roiColor}">${h.roi.toFixed(2)}%</p>
                         </div>
                     </div>
-
-                    <button onclick='loadFromHistory(${h.id})' class='w-full bg-slate-700 hover:bg-emerald-600 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-2'>
+                    <button onclick='loadFromHistory(${h.id})' class='w-full bg-slate-800 hover:bg-emerald-600 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-2'>
                         <i class="fas fa-upload"></i> Carregar estes Jogos
                     </button>
                 </div>
@@ -868,38 +897,27 @@
         function loadFromHistory(id) {
             const history = JSON.parse(localStorage.getItem('megastrat-history')) || [];
             const entry = history.find(h => h.id === id);
-
             if (entry) {
-                // Confirm overwrite if wallet not empty
                 if(state.games.length > 0) {
                     if(!confirm("Substituir carteira atual pelos jogos do histórico?")) return;
                 }
-
                 state.games = [];
                 entry.games.forEach(g => addGameToWallet(g.numbers, 'history'));
                 state.strategy = entry.mode;
-
-                // Update UI for strategy
                 setStrategy(entry.mode);
-
-                toggleHistory();
+                switchTab('carteira');
                 showToast(`Carregados ${entry.games.length} jogos do histórico!`, 'success');
             }
         }
 
         // --- PRE-SIMULATION ANALYSIS ---
         function analyzeGameQuality(game) {
-            // 1. Cobertura de Números Quentes
             const hotCoverage = game.filter(n => STATS.hot.includes(n)).length;
             const hotPercent = (hotCoverage / game.length) * 100;
-
-            // 2. Soma
             const sum = game.reduce((a, b) => a + b, 0);
             const sumMin = 140 + (game.length - 6) * 25;
             const sumMax = 230 + (game.length - 6) * 35;
             const sumStatus = (sum >= sumMin && sum <= sumMax) ? '✓ OK' : '⚠ Atípico';
-
-            // 3. Consecutivos
             let maxConsecutive = 0, currentConsec = 1;
             game.sort((a,b)=>a-b);
             for (let i = 0; i < game.length - 1; i++) {
@@ -910,49 +928,36 @@
                     currentConsec = 1;
                 }
             }
-
-            // 4. Paridade
             const evens = game.filter(n => n % 2 === 0).length;
             const odds = game.length - evens;
             const parityBalance = Math.abs(evens - odds);
-
-            // Score Arbitrário (0-100)
             let score = 100;
             if(hotPercent < 30) score -= 20;
             if(sumStatus.includes('Atípico')) score -= 30;
             if(maxConsecutive > 2) score -= 20;
             if(parityBalance > 2) score -= 15;
-
             return {
                 hotCoverage: hotPercent.toFixed(0) + '%',
-                sum,
-                sumStatus,
-                maxConsecutive,
-                parityBalance,
+                sum, sumStatus, maxConsecutive, parityBalance,
                 score: Math.max(0, score)
             };
         }
 
         function showPreSimulationAnalysis() {
             if(state.games.length === 0) return showToast("Carteira vazia!", "error");
-
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4';
             modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
-
             let analysisHTML = '<div class="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl">';
             analysisHTML += '<div class="p-4 border-b border-slate-700 flex justify-between items-center"><h3 class="text-lg font-bold text-white"><i class="fas fa-microscope text-emerald-400"></i> Análise de Qualidade</h3><button onclick="this.closest(\'.fixed\').remove()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button></div>';
             analysisHTML += '<div class="p-4 overflow-y-auto space-y-3 custom-scrollbar">';
-
             let totalScore = 0;
             state.games.forEach((g, idx) => {
-                const analysis = analyzeGameQuality([...g.numbers]); // Clone array to sort safely
+                const analysis = analyzeGameQuality([...g.numbers]);
                 totalScore += analysis.score;
-
                 let scoreColor = 'text-emerald-400';
                 if(analysis.score < 70) scoreColor = 'text-yellow-400';
                 if(analysis.score < 50) scoreColor = 'text-red-400';
-
                 analysisHTML += `
                     <div class='bg-slate-700/50 p-3 rounded-lg border border-slate-600/50'>
                         <div class="flex justify-between items-center mb-2">
@@ -968,12 +973,10 @@
                     </div>
                 `;
             });
-
             const avgScore = (totalScore / state.games.length).toFixed(0);
             analysisHTML += '</div>';
             analysisHTML += `<div class="p-4 border-t border-slate-700 bg-slate-900/50 rounded-b-2xl"><p class="text-center text-sm font-bold text-slate-300">Média Geral: <span class="text-emerald-400 text-lg">${avgScore}</span></p></div>`;
             analysisHTML += '</div>';
-
             modal.innerHTML = analysisHTML;
             document.body.appendChild(modal);
         }
@@ -999,7 +1002,6 @@
             state.games.forEach((g, idx) => {
                 csv += `${idx + 1},"${g.numbers.join('-')}",${g.cost.toFixed(2)},${g.type}\n`;
             });
-
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1012,72 +1014,51 @@
         function shareViaURL() {
             if(state.games.length === 0) return showToast("Carteira vazia!", "error");
             const gamesData = state.games.map(g => g.numbers.join('-')).join('|');
-            const compressed = btoa(gamesData); // Base64 encoding
+            const compressed = btoa(gamesData);
             const shareURL = `${window.location.origin}${window.location.pathname}?load=${compressed}`;
-
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(shareURL).then(() => {
-                    showToast('Link de compartilhamento copiado!', 'success');
-                });
+                navigator.clipboard.writeText(shareURL).then(() => showToast('Link copiado!', 'success'));
             } else {
                 fallbackCopy(shareURL);
             }
         }
 
         // --- SIMULADOR MONTE CARLO v5.1 ---
-        
         async function runSimulation() {
             if (state.games.length === 0) return showToast("Adicione jogos à carteira primeiro.", "error");
-            
             const btn = document.getElementById('btnSimulate');
             const resArea = document.getElementById('simResults');
             const prog = document.getElementById('simProgress');
-            
             resArea.classList.remove('hidden');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin animate-spin"></i> Processando...';
             prog.style.width = '0%';
-
-            // 50.000 Sorteios (Equivalente a ~480 anos de concursos bi-semanais)
             const ITERATIONS = 50000;
             const CHUNK = 1000; 
-            
             let quadra = 0, quina = 0, sena = 0;
             let current = 0;
-            
-            // Valores de Prêmios Estimados (Médias)
-            const PRIZES = { 4: 1200, 5: 55000, 6: 20000000 }; 
-
             const process = () => {
                 const end = Math.min(current + CHUNK, ITERATIONS);
-                
                 for(let i=current; i<end; i++) {
                     const draw = new Set();
-                    while(draw.size < 6) {
-                        draw.add(getWeightedRandomNumber());
-                    }
-                    
+                    while(draw.size < 6) draw.add(getWeightedRandomNumber());
                     state.games.forEach(g => {
                         let hits = 0;
                         g.numbers.forEach(n => { if(draw.has(n)) hits++; });
-                        
                         if (hits === 4) quadra++;
                         if (hits === 5) quina++;
                         if (hits === 6) sena++;
                     });
                 }
-                
                 current = end;
                 const pct = (current / ITERATIONS) * 100;
                 prog.style.width = `${pct}%`;
-
                 if (current < ITERATIONS) {
                     requestAnimationFrame(process);
                 } else {
                     finishSim(quadra, quina, sena, ITERATIONS);
                 }
             };
-            
             requestAnimationFrame(process);
         }
 
@@ -1085,30 +1066,19 @@
             const btn = document.getElementById('btnSimulate');
             btn.disabled = false;
             btn.innerHTML = '<span>Executar Simulação</span><i class="fas fa-play text-xs group-hover:translate-x-1 transition"></i>';
-
-            // Cálculo Financeiro (ROI)
             const totalCost = state.games.reduce((a,b)=>a+b.cost, 0) * iterations;
             const totalWin = (q4 * 1200) + (q5 * 55000) + (q6 * 20000000);
-            
             let roi = 0;
-            if (totalCost > 0) {
-                roi = ((totalWin - totalCost) / totalCost) * 100;
-            }
-
-            // Save to History automatically on simulation finish
+            if (totalCost > 0) roi = ((totalWin - totalCost) / totalCost) * 100;
             saveGenerationHistory(state.games, state.strategy, roi);
-
             document.getElementById('resQuadra').innerText = q4.toLocaleString();
             document.getElementById('resQuina').innerText = q5.toLocaleString();
             document.getElementById('resSena').innerText = q6.toLocaleString();
-            
             const roiEl = document.getElementById('resRoi');
             roiEl.innerText = `${roi.toFixed(2)}%`;
-            
             if(roi > 0) roiEl.className = "text-3xl font-bold text-emerald-400 mt-1";
             else if(roi > -50) roiEl.className = "text-3xl font-bold text-yellow-400 mt-1";
             else roiEl.className = "text-3xl font-bold text-red-400 mt-1";
-
             showToast("Simulação concluída!", "success");
         }
 
@@ -1125,7 +1095,6 @@
         function formatNumber(num) {
             return num.toLocaleString('pt-BR');
         }
-
     </script>
 </body>
 </html>
