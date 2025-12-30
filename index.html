@@ -6,6 +6,7 @@
     <title>MegaStrat Ultra v5.1 - Motor Probabilístico Real</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
@@ -75,6 +76,27 @@
         }
         @keyframes progress-bar-stripes { from { background-position: 1rem 0; } to { background-position: 0 0; } }
 
+        /* Animations */
+        @keyframes ripple {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .ball.selected::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.4);
+            animation: ripple 0.6s ease-out;
+            pointer-events: none;
+        }
+
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
@@ -103,7 +125,7 @@
                 <div>
                     <h1 class="text-xl font-bold tracking-tight text-white">MegaStrat <span class="text-emerald-400 font-light">Ultra</span></h1>
                     <div class="flex items-center gap-2">
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Engine v5.1</p>
+                        <p class="text-[10px] text-slate-300 uppercase tracking-widest font-mono font-bold">Engine v5.1</p>
                         <span id="dataStatusBadge" class="bg-slate-800 text-slate-300 text-[9px] px-2 py-0.5 rounded border border-slate-600 uppercase flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Dados: Conc. 2954
                         </span>
@@ -111,10 +133,15 @@
                 </div>
             </div>
             
-            <div class="flex gap-3 text-[10px] font-mono font-semibold bg-slate-800 p-2 rounded-lg border border-slate-700">
-                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444]"></span> Super Quente</div>
-                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Quente</div>
-                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Frio/Atrasado</div>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleHistory()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 p-2 rounded-lg transition text-[10px] font-bold flex items-center gap-2">
+                    <i class="fas fa-history"></i> Histórico
+                </button>
+                <div class="flex gap-3 text-[10px] font-mono font-semibold bg-slate-800 p-2 rounded-lg border border-slate-700">
+                    <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444]"></span> Super Quente</div>
+                    <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Quente</div>
+                    <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Frio/Atrasado</div>
+                </div>
             </div>
         </div>
     </nav>
@@ -125,7 +152,7 @@
         <div class="lg:col-span-5 space-y-6">
             
             <!-- Matriz Estatística (Heatmap) -->
-            <div class="bg-slate-800/50 rounded-2xl border border-slate-700 p-1 shadow-2xl backdrop-blur-sm">
+            <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-1">
                 <div class="bg-slate-900/50 p-4 border-b border-slate-700 flex justify-between items-center rounded-t-xl">
                     <h2 class="text-sm font-bold text-white flex items-center gap-2">
                         <i class="fas fa-border-all text-emerald-500"></i> Matriz Estatística Real
@@ -134,7 +161,7 @@
                 </div>
                 
                 <div class="p-5">
-                    <div class="grid grid-cols-6 sm:grid-cols-10 gap-2" id="manualGrid">
+                    <div class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-10 gap-2" id="manualGrid">
                         <!-- JS injects balls here based on weights -->
                     </div>
                 </div>
@@ -142,18 +169,18 @@
                 <!-- Footer Informativo -->
                 <div class="bg-slate-900/80 p-4 border-t border-slate-700 rounded-b-xl grid grid-cols-2 gap-4">
                     <div>
-                        <p class="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider">Investimento</p>
+                        <p class="text-[10px] uppercase text-slate-300 font-bold mb-1 tracking-wider">Investimento</p>
                         <p class="text-xl font-bold text-white font-mono" id="costDisplay">R$ 0,00</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider">Probabilidade (Sena)</p>
+                        <p class="text-[10px] uppercase text-slate-300 font-bold mb-1 tracking-wider">Probabilidade (Sena)</p>
                         <p class="text-xs font-mono text-emerald-400 font-bold" id="probDisplay">-</p>
                     </div>
                 </div>
             </div>
 
             <!-- Gerador IA Preditivo -->
-            <div class="bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl border border-slate-700 p-6 relative overflow-hidden group">
+            <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-6 relative overflow-hidden group">
                 <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
                 <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
                 
@@ -164,7 +191,7 @@
                 <div class="space-y-5 relative z-10">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-[10px] uppercase text-slate-400 font-bold block mb-2 tracking-wider">Números p/ Jogo</label>
+                            <label class="text-[10px] uppercase text-slate-300 font-bold block mb-2 tracking-wider">Números p/ Jogo</label>
                             <select id="genSize" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition">
                                 <option value="6">6 (Padrão)</option>
                                 <option value="7">7 (Estratégico)</option>
@@ -174,14 +201,14 @@
                             </select>
                         </div>
                         <div>
-                            <label class="text-[10px] uppercase text-slate-400 font-bold block mb-2 tracking-wider">Qtd. Jogos</label>
+                            <label class="text-[10px] uppercase text-slate-300 font-bold block mb-2 tracking-wider">Qtd. Jogos</label>
                             <input type="number" id="genQty" value="5" min="1" max="50" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition text-center">
                         </div>
                     </div>
 
                     <!-- Seletor de Estratégia -->
                     <div>
-                        <label class="text-[10px] uppercase text-slate-400 font-bold block mb-2 tracking-wider">Modo do Motor</label>
+                        <label class="text-[10px] uppercase text-slate-300 font-bold block mb-2 tracking-wider">Modo do Motor</label>
                         <div class="grid grid-cols-3 gap-2">
                             <button onclick="setStrategy('balanced')" class="strat-btn active group relative bg-slate-800 hover:bg-slate-700 border border-emerald-500/50 rounded-lg p-3 text-[10px] text-center transition" data-mode="balanced">
                                 <div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition"></div>
@@ -199,7 +226,7 @@
                                 <span class="font-bold text-slate-300">IA Smart</span>
                             </button>
                         </div>
-                        <p id="strategyDesc" class="text-[10px] text-slate-500 mt-2 text-center italic">Usa média histórica e desvio padrão para equilibrar o jogo.</p>
+                        <p id="strategyDesc" class="text-[10px] text-slate-400 mt-2 text-center italic">Usa média histórica e desvio padrão para equilibrar o jogo.</p>
                     </div>
 
                     <button onclick="generateGames()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition active:scale-[0.98] flex items-center justify-center gap-2 group">
@@ -223,38 +250,8 @@
         <!-- Coluna Direita: Carteira e Simulador -->
         <div class="lg:col-span-7 space-y-6">
 
-            <!-- Carteira de Jogos -->
-            <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col h-[420px] shadow-xl relative overflow-hidden">
-                <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/80 backdrop-blur z-10">
-                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
-                        <i class="fas fa-wallet text-slate-400"></i> Carteira de Apostas
-                    </h2>
-                    <div class="flex gap-2">
-                        <button onclick="copyGames()" class="text-xs bg-slate-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded transition flex items-center gap-1">
-                            <i class="fas fa-copy"></i> Copiar
-                        </button>
-                        <button onclick="clearWallet()" class="text-xs bg-slate-700 hover:bg-red-600 text-white px-3 py-1.5 rounded transition flex items-center gap-1">
-                            <i class="fas fa-trash"></i> Limpar
-                        </button>
-                    </div>
-                </div>
-
-                <div id="gamesContainer" class="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin z-10">
-                    <!-- Jogos inseridos via JS -->
-                    <div class="h-full flex flex-col items-center justify-center text-slate-600 opacity-40">
-                        <i class="fas fa-ticket-alt text-5xl mb-3"></i>
-                        <p class="text-sm font-medium">Nenhum jogo na carteira.</p>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-slate-900/90 border-t border-slate-700 rounded-b-2xl flex justify-between items-center z-10">
-                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Carteira</span>
-                    <span class="text-lg font-bold text-emerald-400 font-mono" id="walletTotal">R$ 0,00</span>
-                </div>
-            </div>
-
             <!-- Simulador Monte Carlo V5.1 -->
-            <div class="bg-slate-900 rounded-3xl border border-slate-800 p-6 relative overflow-hidden">
+            <div class="bg-slate-800/50 backdrop-blur-md rounded-3xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-6 relative overflow-hidden">
                 <!-- Decorative background -->
                 <div class="absolute top-0 right-0 w-80 h-80 bg-emerald-600 rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
                 <div class="absolute bottom-0 left-0 w-64 h-64 bg-blue-600 rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
@@ -265,12 +262,17 @@
                             <h2 class="text-xl font-bold text-white flex items-center gap-2">
                                 <i class="fas fa-chart-line text-emerald-500"></i> Monte Carlo <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Real Engine</span>
                             </h2>
-                            <p class="text-xs text-slate-400 mt-1 max-w-md">Simulação baseada na frequência ponderada histórica (1996-2025). Testa 50.000 concursos futuros prováveis.</p>
+                            <p class="text-xs text-slate-300 mt-1 max-w-md">Simulação baseada na frequência ponderada histórica (1996-2025). Testa 50.000 concursos futuros prováveis.</p>
                         </div>
-                        <button onclick="runSimulation()" id="btnSimulate" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group">
-                            <span>Executar Simulação</span>
-                            <i class="fas fa-play text-xs group-hover:translate-x-1 transition"></i>
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="showPreSimulationAnalysis()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg transition flex items-center gap-2 text-xs">
+                                <i class="fas fa-search-plus"></i> Analisar
+                            </button>
+                            <button onclick="runSimulation()" id="btnSimulate" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group">
+                                <span>Executar Simulação</span>
+                                <i class="fas fa-play text-xs group-hover:translate-x-1 transition"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Resultados da Simulação -->
@@ -307,6 +309,61 @@
                 </div>
             </div>
 
+            <!-- Carteira de Jogos -->
+            <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 flex flex-col h-[420px] relative overflow-hidden">
+                <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/80 backdrop-blur z-10">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-wallet text-slate-300"></i> Carteira de Apostas
+                    </h2>
+                    <div class="flex gap-2">
+                        <button onclick="exportPDF()" class="text-xs bg-slate-700 hover:bg-red-500 text-white px-2 py-1.5 rounded transition" title="PDF">
+                            <i class="fas fa-file-pdf"></i>
+                        </button>
+                        <button onclick="exportCSV()" class="text-xs bg-slate-700 hover:bg-green-600 text-white px-2 py-1.5 rounded transition" title="CSV">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                        <button onclick="shareViaURL()" class="text-xs bg-slate-700 hover:bg-blue-500 text-white px-2 py-1.5 rounded transition" title="Link">
+                            <i class="fas fa-link"></i>
+                        </button>
+                        <button onclick="copyGames()" class="text-xs bg-slate-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded transition flex items-center gap-1">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                        <button onclick="clearWallet()" class="text-xs bg-slate-700 hover:bg-red-600 text-white px-3 py-1.5 rounded transition flex items-center gap-1">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="gamesContainer" class="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin z-10">
+                    <!-- Jogos inseridos via JS -->
+                    <div class="h-full flex flex-col items-center justify-center text-slate-600 opacity-40">
+                        <i class="fas fa-ticket-alt text-5xl mb-3"></i>
+                        <p class="text-sm font-medium">Nenhum jogo na carteira.</p>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-900/90 border-t border-slate-700 rounded-b-2xl flex justify-between items-center z-10">
+                    <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Total Carteira</span>
+                    <span class="text-lg font-bold text-emerald-400 font-mono" id="walletTotal">R$ 0,00</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+        <div class="bg-slate-900 rounded-2xl border border-slate-700 w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl relative overflow-hidden">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900 z-10">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-history text-emerald-500"></i> Histórico de Gerações</h3>
+                <button onclick="toggleHistory()" class="text-slate-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div id="historyContainer" class="p-4 overflow-y-auto space-y-3 custom-scrollbar flex-1 bg-slate-900/50">
+                <p class="text-center text-slate-500 text-sm py-10">Nenhum histórico encontrado.</p>
+            </div>
+            <div class="p-3 border-t border-slate-800 bg-slate-900 flex justify-end">
+                <button onclick="localStorage.removeItem('megastrat-history'); loadHistoryTab(); showToast('Histórico limpo!', 'success')" class="text-xs text-red-400 hover:text-red-300 font-bold px-3 py-1">Limpar Tudo</button>
+            </div>
         </div>
     </div>
 
@@ -398,6 +455,18 @@
         window.onload = () => {
             renderGrid();
             updateDashboard();
+
+            // Check for shared games via URL
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('load')) {
+                try {
+                    const games = atob(params.get('load')).split('|').map(g => g.split('-').map(Number));
+                    games.forEach(g => addGameToWallet(g, 'shared'));
+                    showToast(`${games.length} jogos compartilhados carregados!`, 'success');
+                } catch(e) {
+                    console.error("Error loading shared games", e);
+                }
+            }
         };
 
         // --- SISTEMA DE ARQUIVOS (ATUALIZAÇÃO DE BASE) ---
@@ -721,6 +790,240 @@
             document.body.removeChild(textArea);
         }
 
+        // --- HISTORY SYSTEM ---
+        function toggleHistory() {
+            const modal = document.getElementById('historyModal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                loadHistoryTab();
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function saveGenerationHistory(games, mode, roi) {
+            if(games.length === 0) return;
+
+            // Calculate wallet total
+            const totalCost = games.reduce((a,b) => a + b.cost, 0);
+
+            const history = JSON.parse(localStorage.getItem('megastrat-history')) || [];
+            history.push({
+                id: Date.now(),
+                games: games, // Save full game objects
+                mode: mode,
+                timestamp: new Date().toISOString(),
+                roi: roi,
+                carteira_total: totalCost
+            });
+
+            // Keep last 50
+            if(history.length > 50) history.shift();
+
+            localStorage.setItem('megastrat-history', JSON.stringify(history));
+        }
+
+        function loadHistoryTab() {
+            const history = JSON.parse(localStorage.getItem('megastrat-history')) || [];
+            const container = document.getElementById('historyContainer');
+
+            if (history.length === 0) {
+                container.innerHTML = '<p class="text-center text-slate-500 text-sm py-10">Nenhum histórico encontrado.</p>';
+                return;
+            }
+
+            container.innerHTML = history.reverse().map((h) => {
+                let roiColor = 'text-slate-400';
+                if(h.roi > 0) roiColor = 'text-emerald-400';
+                else if(h.roi < -50) roiColor = 'text-red-400';
+                else if(h.roi !== 0) roiColor = 'text-yellow-400';
+
+                const date = new Date(h.timestamp).toLocaleString('pt-BR');
+                const gameCount = h.games.length;
+
+                return `
+                <div class='bg-slate-800 p-4 rounded-xl border border-slate-700 hover:border-slate-600 transition group'>
+                    <div class='flex justify-between items-start mb-3'>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class='text-[10px] bg-slate-700 text-white px-2 py-0.5 rounded font-mono'>${date}</span>
+                                <span class='text-[10px] bg-emerald-900/50 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 uppercase font-bold'>${h.mode}</span>
+                            </div>
+                            <p class="text-sm text-slate-300 font-medium">${gameCount} Jogos <span class="text-slate-500 mx-1">|</span> Total: ${h.carteira_total.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-500 uppercase font-bold">ROI Simulado</span>
+                            <p class="text-lg font-bold ${roiColor}">${h.roi.toFixed(2)}%</p>
+                        </div>
+                    </div>
+
+                    <button onclick='loadFromHistory(${h.id})' class='w-full bg-slate-700 hover:bg-emerald-600 text-white text-xs font-bold py-2 rounded-lg transition flex items-center justify-center gap-2'>
+                        <i class="fas fa-upload"></i> Carregar estes Jogos
+                    </button>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function loadFromHistory(id) {
+            const history = JSON.parse(localStorage.getItem('megastrat-history')) || [];
+            const entry = history.find(h => h.id === id);
+
+            if (entry) {
+                // Confirm overwrite if wallet not empty
+                if(state.games.length > 0) {
+                    if(!confirm("Substituir carteira atual pelos jogos do histórico?")) return;
+                }
+
+                state.games = [];
+                entry.games.forEach(g => addGameToWallet(g.numbers, 'history'));
+                state.strategy = entry.mode;
+
+                // Update UI for strategy
+                setStrategy(entry.mode);
+
+                toggleHistory();
+                showToast(`Carregados ${entry.games.length} jogos do histórico!`, 'success');
+            }
+        }
+
+        // --- PRE-SIMULATION ANALYSIS ---
+        function analyzeGameQuality(game) {
+            // 1. Cobertura de Números Quentes
+            const hotCoverage = game.filter(n => STATS.hot.includes(n)).length;
+            const hotPercent = (hotCoverage / game.length) * 100;
+
+            // 2. Soma
+            const sum = game.reduce((a, b) => a + b, 0);
+            const sumMin = 140 + (game.length - 6) * 25;
+            const sumMax = 230 + (game.length - 6) * 35;
+            const sumStatus = (sum >= sumMin && sum <= sumMax) ? '✓ OK' : '⚠ Atípico';
+
+            // 3. Consecutivos
+            let maxConsecutive = 0, currentConsec = 1;
+            game.sort((a,b)=>a-b);
+            for (let i = 0; i < game.length - 1; i++) {
+                if (game[i + 1] === game[i] + 1) {
+                    currentConsec++;
+                    maxConsecutive = Math.max(maxConsecutive, currentConsec);
+                } else {
+                    currentConsec = 1;
+                }
+            }
+
+            // 4. Paridade
+            const evens = game.filter(n => n % 2 === 0).length;
+            const odds = game.length - evens;
+            const parityBalance = Math.abs(evens - odds);
+
+            // Score Arbitrário (0-100)
+            let score = 100;
+            if(hotPercent < 30) score -= 20;
+            if(sumStatus.includes('Atípico')) score -= 30;
+            if(maxConsecutive > 2) score -= 20;
+            if(parityBalance > 2) score -= 15;
+
+            return {
+                hotCoverage: hotPercent.toFixed(0) + '%',
+                sum,
+                sumStatus,
+                maxConsecutive,
+                parityBalance,
+                score: Math.max(0, score)
+            };
+        }
+
+        function showPreSimulationAnalysis() {
+            if(state.games.length === 0) return showToast("Carteira vazia!", "error");
+
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4';
+            modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+
+            let analysisHTML = '<div class="bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl">';
+            analysisHTML += '<div class="p-4 border-b border-slate-700 flex justify-between items-center"><h3 class="text-lg font-bold text-white"><i class="fas fa-microscope text-emerald-400"></i> Análise de Qualidade</h3><button onclick="this.closest(\'.fixed\').remove()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button></div>';
+            analysisHTML += '<div class="p-4 overflow-y-auto space-y-3 custom-scrollbar">';
+
+            let totalScore = 0;
+            state.games.forEach((g, idx) => {
+                const analysis = analyzeGameQuality([...g.numbers]); // Clone array to sort safely
+                totalScore += analysis.score;
+
+                let scoreColor = 'text-emerald-400';
+                if(analysis.score < 70) scoreColor = 'text-yellow-400';
+                if(analysis.score < 50) scoreColor = 'text-red-400';
+
+                analysisHTML += `
+                    <div class='bg-slate-700/50 p-3 rounded-lg border border-slate-600/50'>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class='text-xs font-bold text-white bg-slate-600 px-2 py-0.5 rounded'>Jogo #${idx + 1}</span>
+                            <span class='text-sm font-bold ${scoreColor}'>Score: ${analysis.score}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-[10px] text-slate-300">
+                            <div>Hot: <span class="text-white">${analysis.hotCoverage}</span></div>
+                            <div>Soma: <span class="text-white">${analysis.sum}</span> <span class="text-[9px] text-slate-400">(${analysis.sumStatus})</span></div>
+                            <div>Consec: <span class="text-white">${analysis.maxConsecutive}</span></div>
+                            <div>Par/Ímpar: <span class="text-white">${analysis.parityBalance <= 2 ? 'Equilibrado' : 'Desbalanceado'}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const avgScore = (totalScore / state.games.length).toFixed(0);
+            analysisHTML += '</div>';
+            analysisHTML += `<div class="p-4 border-t border-slate-700 bg-slate-900/50 rounded-b-2xl"><p class="text-center text-sm font-bold text-slate-300">Média Geral: <span class="text-emerald-400 text-lg">${avgScore}</span></p></div>`;
+            analysisHTML += '</div>';
+
+            modal.innerHTML = analysisHTML;
+            document.body.appendChild(modal);
+        }
+
+        // --- EXPORT & SHARE ---
+        function exportPDF() {
+            if(state.games.length === 0) return showToast("Carteira vazia!", "error");
+            const element = document.getElementById('gamesContainer');
+            const opt = {
+                margin: 10,
+                filename: `megastrat_${new Date().getTime()}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, backgroundColor: '#1e293b' },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            html2pdf().set(opt).from(element).save();
+            showToast('PDF exportado com sucesso!', 'success');
+        }
+
+        function exportCSV() {
+            if(state.games.length === 0) return showToast("Carteira vazia!", "error");
+            let csv = 'Jogo,Números,Custo,Tipo\n';
+            state.games.forEach((g, idx) => {
+                csv += `${idx + 1},"${g.numbers.join('-')}",${g.cost.toFixed(2)},${g.type}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `megastrat_${new Date().getTime()}.csv`;
+            a.click();
+            showToast('CSV exportado para Excel!', 'success');
+        }
+
+        function shareViaURL() {
+            if(state.games.length === 0) return showToast("Carteira vazia!", "error");
+            const gamesData = state.games.map(g => g.numbers.join('-')).join('|');
+            const compressed = btoa(gamesData); // Base64 encoding
+            const shareURL = `${window.location.origin}${window.location.pathname}?load=${compressed}`;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareURL).then(() => {
+                    showToast('Link de compartilhamento copiado!', 'success');
+                });
+            } else {
+                fallbackCopy(shareURL);
+            }
+        }
+
         // --- SIMULADOR MONTE CARLO v5.1 ---
         
         async function runSimulation() {
@@ -791,6 +1094,9 @@
             if (totalCost > 0) {
                 roi = ((totalWin - totalCost) / totalCost) * 100;
             }
+
+            // Save to History automatically on simulation finish
+            saveGenerationHistory(state.games, state.strategy, roi);
 
             document.getElementById('resQuadra').innerText = q4.toLocaleString();
             document.getElementById('resQuina').innerText = q5.toLocaleString();
