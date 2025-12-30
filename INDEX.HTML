@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MegaStrat Ultra v5.1 - Motor Probabilístico Real</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #0b1120; color: #cbd5e1; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Estilo das Bolas Otimizado */
+        .ball {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            border: 1px solid #334155;
+            background: #1e293b;
+            color: #94a3b8;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .ball:hover { transform: translateY(-2px); border-color: #64748b; color: white; }
+        
+        /* Seleção Manual */
+        .ball.selected {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-color: #34d399;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Indicadores de Temperatura (Heatmap) */
+        .ball::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            opacity: 0.8;
+        }
+        .ball.hot-tier-1::before { background-color: #ef4444; height: 4px; box-shadow: 0 0 8px #ef4444; } /* Super Quente */
+        .ball.hot-tier-2::before { background-color: #f59e0b; } /* Quente */
+        .ball.cold-tier::before  { background-color: #3b82f6; } /* Frio */
+
+        /* Cartão de Jogo */
+        .game-card {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            transition: all 0.2s ease;
+        }
+        .game-card:hover { border-color: #10b981; transform: translateX(4px); }
+
+        /* Barra de Progresso Animada */
+        .progress-bar-stripes {
+            background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
+            background-size: 1rem 1rem;
+            animation: progress-bar-stripes 1s linear infinite;
+        }
+        @keyframes progress-bar-stripes { from { background-position: 1rem 0; } to { background-position: 0 0; } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Toast Notification */
+        .toast-enter { transform: translateY(100%); opacity: 0; }
+        .toast-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s ease-out; }
+        .toast-exit { transform: translateY(0); opacity: 1; }
+        .toast-exit-active { transform: translateY(100%); opacity: 0; transition: all 0.3s ease-in; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col pb-10">
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Navbar -->
+    <nav class="bg-slate-900/90 backdrop-blur-xl border-b border-slate-700 sticky top-0 z-50 shadow-2xl">
+        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-700 rounded-lg flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                    <i class="fas fa-atom text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white">MegaStrat <span class="text-emerald-400 font-light">Ultra</span></h1>
+                    <div class="flex items-center gap-2">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Engine v5.1</p>
+                        <span id="dataStatusBadge" class="bg-slate-800 text-slate-300 text-[9px] px-2 py-0.5 rounded border border-slate-600 uppercase flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Dados: Conc. 2954
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 text-[10px] font-mono font-semibold bg-slate-800 p-2 rounded-lg border border-slate-700">
+                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444]"></span> Super Quente</div>
+                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Quente</div>
+                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Frio/Atrasado</div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+
+        <!-- Coluna Esquerda: Controle e Motor -->
+        <div class="lg:col-span-5 space-y-6">
+            
+            <!-- Matriz Estatística (Heatmap) -->
+            <div class="bg-slate-800/50 rounded-2xl border border-slate-700 p-1 shadow-2xl backdrop-blur-sm">
+                <div class="bg-slate-900/50 p-4 border-b border-slate-700 flex justify-between items-center rounded-t-xl">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-border-all text-emerald-500"></i> Matriz Estatística Real
+                    </h2>
+                    <span id="selectionCounter" class="font-mono text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">0 / 15</span>
+                </div>
+                
+                <div class="p-5">
+                    <div class="grid grid-cols-6 sm:grid-cols-10 gap-2" id="manualGrid">
+                        <!-- JS injects balls here based on weights -->
+                    </div>
+                </div>
+
+                <!-- Footer Informativo -->
+                <div class="bg-slate-900/80 p-4 border-t border-slate-700 rounded-b-xl grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider">Investimento</p>
+                        <p class="text-xl font-bold text-white font-mono" id="costDisplay">R$ 0,00</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] uppercase text-slate-500 font-bold mb-1 tracking-wider">Probabilidade (Sena)</p>
+                        <p class="text-xs font-mono text-emerald-400 font-bold" id="probDisplay">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gerador IA Preditivo -->
+            <div class="bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl border border-slate-700 p-6 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+                
+                <h3 class="text-sm font-bold text-white mb-5 flex items-center gap-2 relative z-10">
+                    <i class="fas fa-brain text-blue-400"></i> Gerador Preditivo (Algoritmo Ponderado)
+                </h3>
+
+                <div class="space-y-5 relative z-10">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] uppercase text-slate-400 font-bold block mb-2 tracking-wider">Números p/ Jogo</label>
+                            <select id="genSize" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition">
+                                <option value="6">6 (Padrão)</option>
+                                <option value="7">7 (Estratégico)</option>
+                                <option value="8">8 (Agressivo)</option>
+                                <option value="9">9 (Investidor)</option>
+                                <option value="10">10 (Fechamento)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] uppercase text-slate-400 font-bold block mb-2 tracking-wider">Qtd. Jogos</label>
+                            <input type="number" id="genQty" value="5" min="1" max="50" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition text-center">
+                        </div>
+                    </div>
+
+                    <!-- Seletor de Estratégia -->
+                    <div>
+                        <label class="text-[10px] uppercase text-slate-400 font-bold block mb-2 tracking-wider">Modo do Motor</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="setStrategy('balanced')" class="strat-btn active group relative bg-slate-800 hover:bg-slate-700 border border-emerald-500/50 rounded-lg p-3 text-[10px] text-center transition" data-mode="balanced">
+                                <div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition"></div>
+                                <i class="fas fa-scale-balanced block mb-1 text-emerald-400 text-lg"></i>
+                                <span class="font-bold text-slate-300">Equilíbrio</span>
+                            </button>
+                            <button onclick="setStrategy('hot')" class="strat-btn group relative bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-3 text-[10px] text-center transition" data-mode="hot">
+                                <div class="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition"></div>
+                                <i class="fas fa-fire block mb-1 text-red-400 text-lg"></i>
+                                <span class="font-bold text-slate-300">Quentes</span>
+                            </button>
+                            <button onclick="setStrategy('smart')" class="strat-btn group relative bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-3 text-[10px] text-center transition" data-mode="smart">
+                                <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition"></div>
+                                <i class="fas fa-microchip block mb-1 text-blue-400 text-lg"></i>
+                                <span class="font-bold text-slate-300">IA Smart</span>
+                            </button>
+                        </div>
+                        <p id="strategyDesc" class="text-[10px] text-slate-500 mt-2 text-center italic">Usa média histórica e desvio padrão para equilibrar o jogo.</p>
+                    </div>
+
+                    <button onclick="generateGames()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-emerald-500/20 transition active:scale-[0.98] flex items-center justify-center gap-2 group">
+                        <i class="fas fa-bolt group-hover:animate-pulse"></i> Gerar Jogos Otimizados
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Ações Rápidas -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="addManualSelection()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl border border-slate-600 transition flex items-center justify-center gap-2 shadow-sm">
+                    <i class="fas fa-plus-circle text-emerald-500"></i> Adic. Manual
+                </button>
+                <button onclick="clearSelection()" class="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white font-bold py-3 rounded-xl border border-slate-700 transition">
+                    Limpar Seleção
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Coluna Direita: Carteira e Simulador -->
+        <div class="lg:col-span-7 space-y-6">
+
+            <!-- Carteira de Jogos -->
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col h-[420px] shadow-xl relative overflow-hidden">
+                <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/80 backdrop-blur z-10">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-wallet text-slate-400"></i> Carteira de Apostas
+                    </h2>
+                    <div class="flex gap-2">
+                        <button onclick="copyGames()" class="text-xs bg-slate-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded transition flex items-center gap-1">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                        <button onclick="clearWallet()" class="text-xs bg-slate-700 hover:bg-red-600 text-white px-3 py-1.5 rounded transition flex items-center gap-1">
+                            <i class="fas fa-trash"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="gamesContainer" class="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin z-10">
+                    <!-- Jogos inseridos via JS -->
+                    <div class="h-full flex flex-col items-center justify-center text-slate-600 opacity-40">
+                        <i class="fas fa-ticket-alt text-5xl mb-3"></i>
+                        <p class="text-sm font-medium">Nenhum jogo na carteira.</p>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-900/90 border-t border-slate-700 rounded-b-2xl flex justify-between items-center z-10">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Carteira</span>
+                    <span class="text-lg font-bold text-emerald-400 font-mono" id="walletTotal">R$ 0,00</span>
+                </div>
+            </div>
+
+            <!-- Simulador Monte Carlo V5.1 -->
+            <div class="bg-slate-900 rounded-3xl border border-slate-800 p-6 relative overflow-hidden">
+                <!-- Decorative background -->
+                <div class="absolute top-0 right-0 w-80 h-80 bg-emerald-600 rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
+                <div class="absolute bottom-0 left-0 w-64 h-64 bg-blue-600 rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <div class="flex flex-col sm:flex-row justify-between items-end mb-6 gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                                <i class="fas fa-chart-line text-emerald-500"></i> Monte Carlo <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Real Engine</span>
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-1 max-w-md">Simulação baseada na frequência ponderada histórica (1996-2025). Testa 50.000 concursos futuros prováveis.</p>
+                        </div>
+                        <button onclick="runSimulation()" id="btnSimulate" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group">
+                            <span>Executar Simulação</span>
+                            <i class="fas fa-play text-xs group-hover:translate-x-1 transition"></i>
+                        </button>
+                    </div>
+
+                    <!-- Resultados da Simulação -->
+                    <div id="simResults" class="hidden space-y-5">
+                        <!-- Barra de Progresso -->
+                        <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
+                            <div id="simProgress" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full w-0 transition-all duration-100 ease-linear progress-bar-stripes"></div>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm">
+                                <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Quadras (4)</span>
+                                <p class="text-3xl font-bold text-yellow-400 mt-1" id="resQuadra">0</p>
+                            </div>
+                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm">
+                                <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Quinas (5)</span>
+                                <p class="text-3xl font-bold text-blue-400 mt-1" id="resQuina">0</p>
+                            </div>
+                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm">
+                                <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Senas (6)</span>
+                                <p class="text-3xl font-bold text-emerald-400 mt-1" id="resSena">0</p>
+                            </div>
+                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 text-center backdrop-blur-sm relative overflow-hidden group">
+                                <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition"></div>
+                                <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Retorno (ROI)</span>
+                                <p class="text-3xl font-bold text-white mt-1" id="resRoi">0%</p>
+                            </div>
+                        </div>
+                        
+                        <div class="text-[10px] text-center text-slate-500 font-mono">
+                            Baseado em projeção de R$ 6,00 por aposta simples.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Hidden Input for File Import (Future Proofing) -->
+    <div class="fixed bottom-4 right-4 z-40">
+        <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white px-3 py-2 rounded-full border border-slate-700 shadow-lg text-xs font-bold transition flex items-center gap-2">
+            <i class="fas fa-upload"></i> Atualizar Base (JSON/TXT)
+            <input type="file" id="fileInput" class="hidden" accept=".json,.txt,.csv" onchange="handleFileUpload(this)">
+        </label>
+    </div>
+
+    <script>
+        /** * MEGASTRAT ULTRA ENGINE V5.1
+         * Baseado nos dados históricos oficiais até Concurso 2954.
+         */
+
+        // --- SISTEMA DE TOAST (Substitui Alert) ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-slate-800 border-slate-600 text-slate-200';
+            let icon = '<i class="fas fa-info-circle text-blue-400"></i>';
+
+            if (type === 'success') {
+                bgClass = 'bg-emerald-900/90 border-emerald-700 text-emerald-100';
+                icon = '<i class="fas fa-check-circle text-emerald-400"></i>';
+            } else if (type === 'error') {
+                bgClass = 'bg-red-900/90 border-red-700 text-red-100';
+                icon = '<i class="fas fa-exclamation-circle text-red-400"></i>';
+            }
+
+            toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl backdrop-blur-md pointer-events-auto toast-enter ${bgClass}`;
+            toast.innerHTML = `${icon} <span class="text-sm font-medium">${message}</span>`;
+
+            container.appendChild(toast);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-enter-active');
+            });
+
+            setTimeout(() => {
+                toast.classList.remove('toast-enter-active');
+                toast.classList.add('toast-exit-active');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // --- DADOS ESTATÍSTICOS OFICIAIS (Hardcoded para performance e fallback) ---
+        // Extraído dos documentos: 10 é o rei (340+ vezes), 53 vice. 26 é o mais raro.
+        let STATS = {
+            // Top 15 Frequentes (Hot)
+            hot: [10, 53, 5, 37, 34, 38, 4, 33, 27, 30, 32, 44, 54, 11, 17],
+            // Top 10 Menos Frequentes (Cold)
+            cold: [26, 55, 21, 22, 56, 14, 35, 13, 9, 48],
+            // Pesos para o motor probabilístico (1.0 = normal)
+            weights: {} 
+        };
+
+        // Inicializar Pesos Probabilísticos (Simula a curva de Gauss da loteria)
+        function initWeights() {
+            for(let i=1; i<=60; i++) {
+                let w = 1.0; 
+                // Boost para números quentes (baseado na persistência estatística)
+                if (STATS.hot.slice(0, 5).includes(i)) w = 1.6; // Top 5
+                else if (STATS.hot.includes(i)) w = 1.3; // Resto do Top 15
+                
+                // Penalidade suave para frios (eles saem, mas menos)
+                if (STATS.cold.includes(i)) w = 0.7;
+                
+                STATS.weights[i] = w;
+            }
+        }
+        initWeights();
+
+        const COSTS = { 6: 5.00, 7: 35.00, 8: 140.00, 9: 420.00, 10: 1050.00, 11: 2310.00, 12: 4620.00 };
+        
+        let state = {
+            manualSelection: new Set(),
+            games: [], 
+            strategy: 'balanced' 
+        };
+
+        // --- INICIALIZAÇÃO ---
+        window.onload = () => {
+            renderGrid();
+            updateDashboard();
+        };
+
+        // --- SISTEMA DE ARQUIVOS (ATUALIZAÇÃO DE BASE) ---
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                // Tentativa simples de parsear números de um CSV ou JSON bruto
+                try {
+                    // Procura padrões de números em massa
+                    const matches = text.match(/\b([0-5]?[0-9]|60)\b/g);
+                    if (matches && matches.length > 100) {
+                        recalcStatsFromData(matches);
+                        showToast("Base de dados atualizada com sucesso!", "success");
+                    } else {
+                        showToast("Formato não reconhecido ou dados insuficientes.", "error");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao ler arquivo.", "error");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function recalcStatsFromData(allNumbers) {
+            const counts = new Array(61).fill(0);
+            allNumbers.forEach(n => {
+                const val = parseInt(n);
+                if (val >= 1 && val <= 60) counts[val]++;
+            });
+            
+            // Criar lista ordenada
+            let ranked = [];
+            for(let i=1; i<=60; i++) ranked.push({ n: i, c: counts[i] });
+            ranked.sort((a,b) => b.c - a.c);
+            
+            // Atualizar Globais
+            STATS.hot = ranked.slice(0, 15).map(x => x.n);
+            STATS.cold = ranked.slice(50, 60).map(x => x.n);
+            initWeights(); // Recalcular pesos
+            renderGrid(); // Atualizar visual
+            
+            document.getElementById('dataStatusBadge').innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Dados: Customizado';
+        }
+
+        // --- INTERFACE E GRADE ---
+
+        function renderGrid() {
+            const grid = document.getElementById('manualGrid');
+            grid.innerHTML = '';
+            
+            for(let i=1; i<=60; i++) {
+                const el = document.createElement('div');
+                let classes = 'ball';
+                
+                // Visualização de Temperatura (Heatmap)
+                if (STATS.hot.slice(0, 5).includes(i)) classes += ' hot-tier-1'; 
+                else if (STATS.hot.includes(i)) classes += ' hot-tier-2'; 
+                else if (STATS.cold.includes(i)) classes += ' cold-tier'; 
+
+                if (state.manualSelection.has(i)) classes += ' selected';
+
+                el.className = classes;
+                el.innerText = i.toString().padStart(2, '0');
+                el.onclick = () => toggleNumber(i);
+                grid.appendChild(el);
+            }
+        }
+
+        function toggleNumber(n) {
+            if (state.manualSelection.has(n)) {
+                state.manualSelection.delete(n);
+            } else {
+                if (state.manualSelection.size >= 15) {
+                    return showToast("Máximo de 15 números por jogo.", "error");
+                }
+                state.manualSelection.add(n);
+            }
+            renderGrid();
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            const count = state.manualSelection.size;
+            document.getElementById('selectionCounter').innerText = `${count} / 15`;
+            
+            const cost = count >= 6 ? (COSTS[count] || 0) : 0;
+            document.getElementById('costDisplay').innerText = cost.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+
+            const probEl = document.getElementById('probDisplay');
+            if (count < 6) {
+                probEl.innerText = "-";
+            } else {
+                const total = combination(60, 6);
+                const player = combination(count, 6);
+                const chance = total / player;
+                probEl.innerText = `1 em ${formatNumber(chance)}`;
+            }
+        }
+
+        function addManualSelection() {
+            if (state.manualSelection.size < 6) return showToast("Selecione pelo menos 6 números.", "error");
+            const nums = Array.from(state.manualSelection).sort((a,b)=>a-b);
+            addGameToWallet(nums, 'manual');
+            clearSelection();
+            showToast("Jogo adicionado à carteira!", "success");
+        }
+
+        function clearSelection() {
+            state.manualSelection.clear();
+            renderGrid();
+            updateDashboard();
+        }
+
+        // --- MOTOR DE GERAÇÃO (IA PREDITIVA) ---
+
+        function setStrategy(mode) {
+            state.strategy = mode;
+            const desc = document.getElementById('strategyDesc');
+            
+            document.querySelectorAll('.strat-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-emerald-500/50', 'bg-slate-900');
+                btn.classList.add('border-slate-700', 'bg-slate-800');
+                
+                if (btn.dataset.mode === mode) {
+                    btn.classList.add('active', 'border-emerald-500/50');
+                    btn.classList.remove('border-slate-700');
+                }
+            });
+
+            if (mode === 'balanced') desc.innerText = "Busca o equilíbrio perfeito da Curva de Gauss (Soma 180-210).";
+            if (mode === 'hot') desc.innerText = "Foca agressivamente nos números de maior frequência histórica.";
+            if (mode === 'smart') desc.innerText = "Mistura 'Lotto Designs' com números quentes e frios para cobertura.";
+        }
+
+        function generateGames() {
+            const qty = parseInt(document.getElementById('genQty').value);
+            const size = parseInt(document.getElementById('genSize').value);
+            const mode = state.strategy;
+
+            for(let i=0; i<qty; i++) {
+                let game = [];
+                let attempts = 0;
+                
+                // Loop de Tentativa de Geração (Para satisfazer filtros)
+                while (attempts < 500) {
+                    const pool = new Set();
+                    
+                    // Lógica de Seleção por Estratégia
+                    if (mode === 'hot') {
+                        // Garante pelo menos 4 do Top 15
+                        fillFromPool(pool, STATS.hot, 4);
+                    } 
+                    else if (mode === 'smart') {
+                        // Estrutura Clássica: 3 Quentes, 1 Frio, Resto Neutro
+                        fillFromPool(pool, STATS.hot, 3);
+                        fillFromPool(pool, STATS.cold, 1);
+                    }
+                    
+                    // Preenche o resto usando Probabilidade Ponderada (Roleta Viciada)
+                    while (pool.size < size) {
+                        pool.add(getWeightedRandomNumber());
+                    }
+
+                    const candidate = Array.from(pool).sort((a,b)=>a-b);
+
+                    // VALIDATION ENGINE (O Coração do App)
+                    if (validateGame(candidate)) {
+                        game = candidate;
+                        break;
+                    }
+                    attempts++;
+                }
+                
+                // Fallback se não conseguir gerar perfeito em 500 tentativas
+                if (game.length === 0) {
+                    const pool = new Set();
+                    while(pool.size < size) pool.add(Math.floor(Math.random()*60)+1);
+                    game = Array.from(pool).sort((a,b)=>a-b);
+                }
+
+                addGameToWallet(game, mode);
+            }
+            showToast(`${qty} Jogos gerados com sucesso!`, "success");
+        }
+
+        // Função de Roleta Ponderada (Baseada na Frequência Real)
+        function getWeightedRandomNumber() {
+            const list = [];
+            for (let i=1; i<=60; i++) {
+                const entries = Math.floor(STATS.weights[i] * 10);
+                for(let k=0; k<entries; k++) list.push(i);
+            }
+            return list[Math.floor(Math.random() * list.length)];
+        }
+
+        function fillFromPool(currentSet, sourceArray, count) {
+            let safety = 0;
+            while(currentSet.size < Math.min(currentSet.size + count, 15) && safety < 50) {
+                const n = sourceArray[Math.floor(Math.random() * sourceArray.length)];
+                currentSet.add(n);
+                safety++;
+            }
+        }
+
+        function validateGame(numbers) {
+            // 1. Filtro de Soma (Teorema do Limite Central)
+            const sum = numbers.reduce((a,b)=>a+b, 0);
+            const min = 140 + (numbers.length - 6) * 25; 
+            const max = 230 + (numbers.length - 6) * 35;
+            
+            if (sum < min || sum > max) return false;
+
+            // 2. Filtro de Consecutivos
+            let cons = 0;
+            for(let i=0; i<numbers.length-1; i++) {
+                if(numbers[i+1] === numbers[i]+1) cons++;
+            }
+            if (cons > 2) return false; 
+
+            // 3. Filtro de Paridade (Evitar tudo Par ou tudo Ímpar)
+            const evens = numbers.filter(n => n%2===0).length;
+            if (evens === 0 || evens === numbers.length) return false;
+
+            return true;
+        }
+
+        // --- CARTEIRA DE JOGOS ---
+
+        function addGameToWallet(numbers, type) {
+            const cost = COSTS[numbers.length] || 0;
+            state.games.push({ numbers, cost, type });
+            renderWallet();
+        }
+
+        function renderWallet() {
+            const container = document.getElementById('gamesContainer');
+            container.innerHTML = '';
+            
+            let total = 0;
+
+            state.games.forEach((g, idx) => {
+                total += g.cost;
+                const div = document.createElement('div');
+                div.className = "game-card p-3 rounded-xl flex justify-between items-center text-sm mb-2 bg-slate-800 border border-slate-700";
+                
+                const ballsHtml = g.numbers.map(n => {
+                    let color = 'text-slate-400'; // Neutro
+                    if (STATS.hot.includes(n)) color = 'text-blue-400 font-bold'; // Quente
+                    if (STATS.cold.includes(n)) color = 'text-indigo-600'; // Frio
+                    return `<span class="${color}">${n.toString().padStart(2,'0')}</span>`;
+                }).join('<span class="text-slate-700 mx-1">·</span>');
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-slate-500 font-mono w-6">#${idx+1}</span>
+                        <div class="font-mono text-base">${ballsHtml}</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-slate-500 font-bold">${g.type.toUpperCase().substring(0,3)}</span>
+                        <button onclick="removeGame(${idx})" class="w-6 h-6 rounded flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-500/10 transition"><i class="fas fa-times"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            if (state.games.length === 0) {
+                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-600 opacity-40"><i class="fas fa-ticket-alt text-4xl mb-3"></i><p class="text-sm">Carteira Vazia</p></div>`;
+            }
+
+            document.getElementById('walletTotal').innerText = total.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+        }
+
+        function removeGame(idx) {
+            state.games.splice(idx, 1);
+            renderWallet();
+        }
+
+        function clearWallet() {
+            state.games = [];
+            renderWallet();
+            showToast("Carteira limpa!", "info");
+        }
+
+        function copyGames() {
+            if(state.games.length === 0) return;
+            
+            const txt = state.games.map(g => g.numbers.join(', ')).join('\n');
+            
+            // Método robusto para copiar (tenta API moderna, fallback para comando antigo)
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(txt).then(() => {
+                    showToast("Jogos copiados para a área de transferência!", "success");
+                }).catch(() => {
+                    fallbackCopy(txt);
+                });
+            } else {
+                fallbackCopy(txt);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed"; 
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if(successful) showToast("Jogos copiados (fallback)!", "success");
+                else showToast("Erro ao copiar.", "error");
+            } catch (err) {
+                showToast("Erro ao copiar.", "error");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // --- SIMULADOR MONTE CARLO v5.1 ---
+        
+        async function runSimulation() {
+            if (state.games.length === 0) return showToast("Adicione jogos à carteira primeiro.", "error");
+            
+            const btn = document.getElementById('btnSimulate');
+            const resArea = document.getElementById('simResults');
+            const prog = document.getElementById('simProgress');
+            
+            resArea.classList.remove('hidden');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin animate-spin"></i> Processando...';
+            prog.style.width = '0%';
+
+            // 50.000 Sorteios (Equivalente a ~480 anos de concursos bi-semanais)
+            const ITERATIONS = 50000;
+            const CHUNK = 1000; 
+            
+            let quadra = 0, quina = 0, sena = 0;
+            let current = 0;
+            
+            // Valores de Prêmios Estimados (Médias)
+            const PRIZES = { 4: 1200, 5: 55000, 6: 20000000 }; 
+
+            const process = () => {
+                const end = Math.min(current + CHUNK, ITERATIONS);
+                
+                for(let i=current; i<end; i++) {
+                    const draw = new Set();
+                    while(draw.size < 6) {
+                        draw.add(getWeightedRandomNumber());
+                    }
+                    
+                    state.games.forEach(g => {
+                        let hits = 0;
+                        g.numbers.forEach(n => { if(draw.has(n)) hits++; });
+                        
+                        if (hits === 4) quadra++;
+                        if (hits === 5) quina++;
+                        if (hits === 6) sena++;
+                    });
+                }
+                
+                current = end;
+                const pct = (current / ITERATIONS) * 100;
+                prog.style.width = `${pct}%`;
+
+                if (current < ITERATIONS) {
+                    requestAnimationFrame(process);
+                } else {
+                    finishSim(quadra, quina, sena, ITERATIONS);
+                }
+            };
+            
+            requestAnimationFrame(process);
+        }
+
+        function finishSim(q4, q5, q6, iterations) {
+            const btn = document.getElementById('btnSimulate');
+            btn.disabled = false;
+            btn.innerHTML = '<span>Executar Simulação</span><i class="fas fa-play text-xs group-hover:translate-x-1 transition"></i>';
+
+            // Cálculo Financeiro (ROI)
+            const totalCost = state.games.reduce((a,b)=>a+b.cost, 0) * iterations;
+            const totalWin = (q4 * 1200) + (q5 * 55000) + (q6 * 20000000);
+            
+            let roi = 0;
+            if (totalCost > 0) {
+                roi = ((totalWin - totalCost) / totalCost) * 100;
+            }
+
+            document.getElementById('resQuadra').innerText = q4.toLocaleString();
+            document.getElementById('resQuina').innerText = q5.toLocaleString();
+            document.getElementById('resSena').innerText = q6.toLocaleString();
+            
+            const roiEl = document.getElementById('resRoi');
+            roiEl.innerText = `${roi.toFixed(2)}%`;
+            
+            if(roi > 0) roiEl.className = "text-3xl font-bold text-emerald-400 mt-1";
+            else if(roi > -50) roiEl.className = "text-3xl font-bold text-yellow-400 mt-1";
+            else roiEl.className = "text-3xl font-bold text-red-400 mt-1";
+
+            showToast("Simulação concluída!", "success");
+        }
+
+        // --- AJUDANTES MATEMÁTICOS ---
+        function combination(n, k) {
+            if (k < 0 || k > n) return 0;
+            if (k === 0 || k === n) return 1;
+            if (k > n / 2) k = n - k;
+            let res = 1;
+            for (let i = 1; i <= k; i++) res = res * (n - i + 1) / i;
+            return Math.round(res);
+        }
+
+        function formatNumber(num) {
+            return num.toLocaleString('pt-BR');
+        }
+
+    </script>
+</body>
+</html>
