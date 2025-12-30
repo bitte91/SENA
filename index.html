@@ -630,15 +630,36 @@
             const grid = document.getElementById('manualGrid');
             grid.innerHTML = '';
             for(let i=1; i<=60; i++) {
-                const el = document.createElement('div');
+                const el = document.createElement('button');
+                el.type = 'button';
+
                 let classes = 'ball';
-                if (STATS.hot.slice(0, 5).includes(i)) classes += ' hot-tier-1'; 
-                else if (STATS.hot.includes(i)) classes += ' hot-tier-2'; 
-                else if (STATS.cold.includes(i)) classes += ' cold-tier'; 
-                if (state.manualSelection.has(i)) classes += ' selected';
+                let statusText = 'Normal';
+
+                if (STATS.hot.slice(0, 5).includes(i)) {
+                    classes += ' hot-tier-1';
+                    statusText = 'Super Quente';
+                }
+                else if (STATS.hot.includes(i)) {
+                    classes += ' hot-tier-2';
+                    statusText = 'Quente';
+                }
+                else if (STATS.cold.includes(i)) {
+                    classes += ' cold-tier';
+                    statusText = 'Frio';
+                }
+
+                const isSelected = state.manualSelection.has(i);
+                if (isSelected) classes += ' selected';
+
                 el.className = classes;
                 el.innerText = i.toString().padStart(2, '0');
                 el.onclick = () => toggleNumber(i);
+
+                // Accessibility
+                el.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+                el.setAttribute('aria-label', `Número ${i}, ${statusText}`);
+
                 grid.appendChild(el);
             }
         }
