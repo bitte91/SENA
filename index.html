@@ -145,6 +145,11 @@
 </head>
 <body class="min-h-screen flex flex-col pb-24 md:pb-10">
 
+    <!-- A11y: Skip to Content -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg outline-none ring-2 ring-white">
+        Pular para o conteúdo principal
+    </a>
+
     <!-- Toast Container -->
     <div id="toast-container" role="status" aria-live="polite" class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
@@ -177,17 +182,17 @@
 
         <!-- Desktop Tab Navigation -->
         <div class="container mx-auto px-4 mt-2 hidden md:block">
-            <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                <button onclick="switchTab('gerador')" data-tab="gerador" class="nav-tab active">
+            <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" role="tablist" aria-label="Navegação principal">
+                <button onclick="switchTab('gerador')" data-tab="gerador" class="nav-tab active" role="tab" aria-selected="true" aria-controls="tab-gerador" id="tab-btn-gerador">
                     <i class="fas fa-crosshairs"></i> Gerador
                 </button>
-                <button onclick="switchTab('simulador')" data-tab="simulador" class="nav-tab">
+                <button onclick="switchTab('simulador')" data-tab="simulador" class="nav-tab" role="tab" aria-selected="false" aria-controls="tab-simulador" id="tab-btn-simulador">
                     <i class="fas fa-dice"></i> Simulador
                 </button>
-                <button onclick="switchTab('carteira')" data-tab="carteira" class="nav-tab">
+                <button onclick="switchTab('carteira')" data-tab="carteira" class="nav-tab" role="tab" aria-selected="false" aria-controls="tab-carteira" id="tab-btn-carteira">
                     <i class="fas fa-wallet"></i> Carteira
                 </button>
-                <button onclick="switchTab('analise')" data-tab="analise" class="nav-tab">
+                <button onclick="switchTab('analise')" data-tab="analise" class="nav-tab" role="tab" aria-selected="false" aria-controls="tab-analise" id="tab-btn-analise">
                     <i class="fas fa-chart-bar"></i> Análise
                 </button>
             </div>
@@ -215,10 +220,10 @@
     </div>
 
     <!-- Main Content -->
-    <div class="container mx-auto p-4 md:p-6 flex-1">
+    <div id="main-content" class="container mx-auto p-4 md:p-6 flex-1" role="main" tabindex="-1">
 
         <!-- ABA 1: GERADOR -->
-        <div id="tab-gerador" class="tab-content">
+        <div id="tab-gerador" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-gerador">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Matriz Estatística -->
                 <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-1">
@@ -318,7 +323,7 @@
         </div>
 
         <!-- ABA 2: SIMULADOR -->
-        <div id="tab-simulador" class="tab-content hidden">
+        <div id="tab-simulador" class="tab-content hidden" role="tabpanel" aria-labelledby="tab-btn-simulador">
             <div class="max-w-4xl mx-auto">
                 <div class="bg-slate-800/50 backdrop-blur-md rounded-3xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-6 relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-80 h-80 bg-emerald-600 rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
@@ -379,7 +384,7 @@
         </div>
 
         <!-- ABA 3: CARTEIRA -->
-        <div id="tab-carteira" class="tab-content hidden">
+        <div id="tab-carteira" class="tab-content hidden" role="tabpanel" aria-labelledby="tab-btn-carteira">
             <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 flex flex-col min-h-[500px] relative overflow-hidden">
                 <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/80 backdrop-blur z-10">
                     <h2 class="text-sm font-bold text-white flex items-center gap-2">
@@ -420,7 +425,7 @@
         </div>
 
         <!-- ABA 4: ANÁLISE & HISTÓRICO -->
-        <div id="tab-analise" class="tab-content hidden">
+        <div id="tab-analise" class="tab-content hidden" role="tabpanel" aria-labelledby="tab-btn-analise">
             <div class="bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-lg shadow-emerald-500/10 p-4">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-bold text-white flex items-center gap-2">
@@ -461,6 +466,7 @@
             document.querySelectorAll('.nav-tab').forEach(el => {
                 el.classList.remove('active', 'border-emerald-500', 'text-emerald-400', 'bg-slate-800/80');
                 el.classList.add('border-transparent');
+                el.setAttribute('aria-selected', 'false');
             });
 
             // Remove active class from mobile nav
@@ -478,6 +484,7 @@
                 if(btn) {
                     btn.classList.add('active', 'border-emerald-500', 'text-emerald-400', 'bg-slate-800/80');
                     btn.classList.remove('border-transparent');
+                    btn.setAttribute('aria-selected', 'true');
                 }
 
                 // Activate mobile nav button
